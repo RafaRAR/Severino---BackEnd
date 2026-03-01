@@ -40,7 +40,9 @@ public class UsuarioController : ControllerBase
         _context.Usuarios.Add(usuario);
         await _context.SaveChangesAsync();
 
-        return Ok("Usuário criado");
+        var token = TokenService.GerarToken(usuario, _config);
+
+        return Ok(new { token });
     }
 
     // POST: api/usuario/login
