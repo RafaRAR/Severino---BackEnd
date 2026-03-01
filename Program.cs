@@ -34,11 +34,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddCors(options => {
+    options.AddPolicy("AzurePolicy", policy => {
+        policy.WithOrigins("https://white-smoke-05cde4b0f.4.azurestaticapps.net")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+
 var app = builder.Build();
 
 // 🔥 Swagger no pipeline
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseCors("AzurePolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
