@@ -14,7 +14,7 @@ senha - String<br>
 200 - OK ("Usuário criado")<br>
 400 - Bad Request ("Email já existe")<br>
 
-# ../api/login
+# ../login
 ## Parâmetros:
 email - String<br>
 senha - String<br>
