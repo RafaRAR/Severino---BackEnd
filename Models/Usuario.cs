@@ -1,8 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-
-
 namespace APIseverino.Models;
 
 public class Usuario
@@ -16,4 +14,14 @@ public class Usuario
     public byte[] SenhaHash { get; set; }
 
     public byte[] SenhaSalt { get; set; }
+
+    public bool EmailConfirmado { get; set; } = false;
+
+    public string? CodigoVerificacao { get; set; }
+
+    public DateTime? ExpiracaoVerificacao { get; set; }
+
+    public string? CodigoResetSenha { get; set; }
+
+    public DateTime? ExpiracaoResetSenha { get; set; }
 }

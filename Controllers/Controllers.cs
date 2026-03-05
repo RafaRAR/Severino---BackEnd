@@ -4,7 +4,7 @@ using APIseverino.Data;
 using APIseverino.Models;
 using APIseverino.Helpers;
 using APIseverino.Helper;
-using Microsoft.AspNetCore.Http.Metadata;
+using System.Security.Cryptography;
 
 namespace APIseverino.Controllers;
 
@@ -14,21 +14,25 @@ public class UsuarioController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _config;
+    private readonly IEmailService _emailService;
+
     public record RegistroBody(string Nome, string Email, string Senha);
     public record LoginBody(string Email, string Senha);
+    public record VerifyBody(string Email, string Codigo);
+    public record EmailBody(string Email);
+    public record ResetBody(string Email, string Codigo, string NovaSenha);
 
-    public UsuarioController(AppDbContext context, IConfiguration config)
+    public UsuarioController(AppDbContext context, IConfiguration config, IEmailService emailService)
     {
         _context = context;
         _config = config;
+        _emailService = emailService;
     }
-    // ... mantendo os namespaces e construtor ...
 
     // POST: api/Usuario/registrar
     [HttpPost("registrar")]
     public async Task<IActionResult> Registrar([FromBody] RegistroBody dto)
     {
-        // Acessamos as propriedades via dto.Email, dto.Senha, etc.
         if (await _context.Usuarios.AnyAsync(u => u.Email == dto.Email))
             return BadRequest("Email já existe");
 
@@ -39,14 +43,58 @@ public class UsuarioController : ControllerBase
             Nome = dto.Nome,
             Email = dto.Email,
             SenhaHash = hash,
-            SenhaSalt = salt
+            SenhaSalt = salt,
+            EmailConfirmado = false
         };
+
+        // Gera código de 6 dígitos criptograficamente seguro
+        var code = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+        usuario.CodigoVerificacao = code;
+        usuario.ExpiracaoVerificacao = DateTime.UtcNow.AddMinutes(30);
 
         _context.Usuarios.Add(usuario);
         await _context.SaveChangesAsync();
 
-        var token = TokenService.GerarToken(usuario, _config);
+        try
+        {
+            await _emailService.SendVerificationCodeAsync(usuario.Email, code);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Falha ao enviar email: {ex.Message}");
+        }
 
+        return Ok(new { message = "Usuário criado. Código de verificação enviado para o email." });
+    }
+
+    // POST: api/Usuario/verificar
+    [HttpPost("verificar")]
+    public async Task<IActionResult> Verificar([FromBody] VerifyBody dto)
+    {
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        if (usuario == null)
+            return BadRequest("Usuário não encontrado");
+
+        if (usuario.EmailConfirmado)
+            return BadRequest("Email já confirmado");
+
+        if (usuario.CodigoVerificacao == null || usuario.ExpiracaoVerificacao == null)
+            return BadRequest("Nenhum código foi gerado para esse usuário");
+
+        if (DateTime.UtcNow > usuario.ExpiracaoVerificacao.Value)
+            return BadRequest("Código expirado");
+
+        if (usuario.CodigoVerificacao != dto.Codigo)
+            return BadRequest("Código inválido");
+
+        usuario.EmailConfirmado = true;
+        usuario.CodigoVerificacao = null;
+        usuario.ExpiracaoVerificacao = null;
+
+        _context.Usuarios.Update(usuario);
+        await _context.SaveChangesAsync();
+
+        var token = TokenService.GerarToken(usuario, _config);
         return Ok(new { token });
     }
 
@@ -63,9 +111,70 @@ public class UsuarioController : ControllerBase
         if (!PasswordHelper.VerificarSenha(dto.Senha, usuario.SenhaHash, usuario.SenhaSalt))
             return Unauthorized("Senha inválida");
 
+        if (!usuario.EmailConfirmado)
+            return Unauthorized("Email não confirmado");
+
         var token = TokenService.GerarToken(usuario, _config);
 
         return Ok(new { token });
     }
 
+    // POST: api/Usuario/solicitarreset
+    [HttpPost("solicitarreset")]
+    public async Task<IActionResult> SolicitarReset([FromBody] EmailBody dto)
+    {
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        if (usuario == null)
+            return BadRequest("Usuário não encontrado");
+
+        var code = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+        usuario.CodigoResetSenha = code;
+        usuario.ExpiracaoResetSenha = DateTime.UtcNow.AddMinutes(30);
+
+        _context.Usuarios.Update(usuario);
+        await _context.SaveChangesAsync();
+
+        try
+        {
+            await _emailService.SendPasswordResetCodeAsync(usuario.Email, code);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Falha ao enviar email: {ex.Message}");
+        }
+
+        return Ok(new { message = "Código de reset enviado para o email." });
+    }
+
+    // POST: api/Usuario/resetar
+    [HttpPost("resetar")]
+    public async Task<IActionResult> Resetar([FromBody] ResetBody dto)
+    {
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        if (usuario == null)
+            return BadRequest("Usuário não encontrado");
+
+        if (usuario.CodigoResetSenha == null || usuario.ExpiracaoResetSenha == null)
+            return BadRequest("Nenhum código foi gerado para esse usuário");
+
+        if (DateTime.UtcNow > usuario.ExpiracaoResetSenha.Value)
+            return BadRequest("Código expirado");
+
+        if (usuario.CodigoResetSenha != dto.Codigo)
+            return BadRequest("Código inválido");
+
+        // Atualiza senha
+        PasswordHelper.CriarHashSenha(dto.NovaSenha, out byte[] hash, out byte[] salt);
+        usuario.SenhaHash = hash;
+        usuario.SenhaSalt = salt;
+
+        // Limpa códigos de reset
+        usuario.CodigoResetSenha = null;
+        usuario.ExpiracaoResetSenha = null;
+
+        _context.Usuarios.Update(usuario);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Senha atualizada com sucesso." });
+    }
 }

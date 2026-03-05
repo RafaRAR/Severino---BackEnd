@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using APIseverino.Models;
+﻿using APIseverino.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace APIseverino.Data
 {
@@ -35,6 +35,29 @@ namespace APIseverino.Data
 
                 entity.Property(u => u.SenhaSalt)
                       .IsRequired();
+
+                // Email confirmado
+                entity.Property(u => u.EmailConfirmado)
+                      .IsRequired()
+                      .HasDefaultValue(false);
+
+                // Código de verificação da conta
+                entity.Property(u => u.CodigoVerificacao)
+                      .HasMaxLength(16)
+                      .IsUnicode(false)
+                      .IsRequired(false);
+
+                entity.Property(u => u.ExpiracaoVerificacao)
+                      .IsRequired(false);
+
+                // Código de reset de senha
+                entity.Property(u => u.CodigoResetSenha)
+                      .HasMaxLength(16)
+                      .IsUnicode(false)
+                      .IsRequired(false);
+
+                entity.Property(u => u.ExpiracaoResetSenha)
+                      .IsRequired(false);
             });
         }
     }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using APIseverino.Data;
+using APIseverino.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,9 @@ builder.Services.AddControllers();
 // 🔥 Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Registrar serviço de email (implementação usa MailKit)
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // JWT
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
@@ -36,16 +40,15 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options => {
     options.AddPolicy("AzurePolicy", policy => {
-        policy.WithOrigins("https://white-smoke-05cde4b0f.4.azurestaticapps.net")
+        //policy.WithOrigins("https://white-smoke-05cde4b0f.4.azurestaticapps.net")
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
-
 var app = builder.Build();
 
-// 🔥 Swagger no pipeline
 app.UseSwagger();
 app.UseSwaggerUI();
 
