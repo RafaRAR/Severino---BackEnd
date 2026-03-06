@@ -1,12 +1,14 @@
+using DotNetEnv;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Gmail.v1;
 using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Services;
+using Microsoft.AspNetCore.DataProtection;
+using Newtonsoft.Json.Linq;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
-using DotNetEnv;
 
 namespace APIseverino.Helpers;
 
@@ -23,10 +25,18 @@ public class EmailService : IEmailService
         {
             Env.Load(".env.test");
         }
-        // 1. Pega as chaves das variáveis de ambiente do Render
-        var clientId = Environment.GetEnvironmentVariable("GMAIL_CLIENT_ID");
+        else
+        {
+            Env.Load(".env");
+        }
+            // 1. Pega as chaves das variáveis de ambiente do Render
+            var clientId = Environment.GetEnvironmentVariable("GMAIL_CLIENT_ID");
         var clientSecret = Environment.GetEnvironmentVariable("GMAIL_CLIENT_SECRET");
         var refreshToken = Environment.GetEnvironmentVariable("GMAIL_REFRESH_TOKEN");
+
+        Console.WriteLine($"DEBUG RENDER - ID presente: {!string.IsNullOrEmpty(clientId)}");
+        Console.WriteLine($"DEBUG RENDER - Secret presente: {!string.IsNullOrEmpty(clientSecret)}");
+        Console.WriteLine($"DEBUG RENDER - Token presente: {!string.IsNullOrEmpty(refreshToken)}");
 
         var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {
