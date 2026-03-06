@@ -1,72 +1,70 @@
-using MailKit.Net.Smtp;
-using MimeKit;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Auth.OAuth2.Flows;
+using Google.Apis.Auth.OAuth2.Responses;
+using Google.Apis.Gmail.v1;
+using Google.Apis.Gmail.v1.Data;
+using Google.Apis.Services;
+using System.Runtime.Intrinsics.X86;
+using System.Text;
+using DotNetEnv;
 
 namespace APIseverino.Helpers;
 
 public interface IEmailService
 {
-    Task SendVerificationCodeAsync(string to, string code);
-    Task SendPasswordResetCodeAsync(string to, string code);
+    Task EnviarCodigo(String destinatario, String codigo, String funcao, String titulo);
 }
-
 public class EmailService : IEmailService
 {
-    private readonly IConfiguration _config;
-
-    public EmailService(IConfiguration config)
+    public async Task EnviarCodigo(String destinatario, String codigo, String funcao, String titulo)
     {
-        _config = config;
-    }
+        // Carrega o arquivo de teste especificamente
+        if (File.Exists(".env.test"))
+        {
+            Env.Load(".env.test");
+        }
+        // 1. Pega as chaves das variáveis de ambiente do Render
+        var clientId = Environment.GetEnvironmentVariable("GMAIL_CLIENT_ID");
+        var clientSecret = Environment.GetEnvironmentVariable("GMAIL_CLIENT_SECRET");
+        var refreshToken = Environment.GetEnvironmentVariable("GMAIL_REFRESH_TOKEN");
 
-    public async Task SendVerificationCodeAsync(string to, string code)
-    {
-        var message = new MimeMessage();
-        var fromName = _config["Smtp:FromName"] ?? "NoReply";
-        var fromEmail = _config["Smtp:FromEmail"] ?? _config["Smtp:User"];
-        message.From.Add(new MailboxAddress(fromName, fromEmail));
-        message.To.Add(MailboxAddress.Parse(to));
-        message.Subject = "Código de verificação";
+        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+        {
+            ClientSecrets = new ClientSecrets
+            {
+                ClientId = clientId,
+                ClientSecret = clientSecret
+            },
+            Scopes = new[] { GmailService.Scope.GmailSend },
+            DataStore = null
+        });
 
-        var bodyText = $"Seu código de verificação é: {code}\n\nEsse código expira em 30 minutos.";
-        message.Body = new TextPart("plain") { Text = bodyText };
+        // Aqui criamos a credencial DIRETAMENTE com o refresh token do Render
+        var credential = new UserCredential(flow, "user", new TokenResponse
+        {
+            RefreshToken = refreshToken
+        });
 
-        using var client = new SmtpClient();
-        var host = _config["Smtp:Host"] ?? throw new InvalidOperationException("Smtp:Host não configurado");
-        var port = int.Parse(_config["Smtp:Port"] ?? "587");
-        var user = _config["Smtp:User"];
-        var pass = _config["Smtp:Pass"];
+        // O SDK do Google vai renovar o Access Token (3600s) automaticamente usando o Refresh Token
+        var service = new GmailService(new BaseClientService.Initializer()
+        {
+            HttpClientInitializer = credential,
+            ApplicationName = "APIseverino"
+        });
 
-        await client.ConnectAsync(host, port, MailKit.Security.SecureSocketOptions.StartTls);
-        if (!string.IsNullOrEmpty(user))
-            await client.AuthenticateAsync(user, pass ?? string.Empty);
+        // 4. Monta a mensagem (Formato RFC 822)
+        string mensagemRaw = $"To: {destinatario}\r\n" +
+                            $"Subject: {titulo}\r\n" +
+                            "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+                            $"<p>{funcao} {codigo}<br><br>\r\n\r\nEsse código expira em 30 minutos. Se você não solicitou, ignore este email.</p>";
 
-        await client.SendAsync(message);
-        await client.DisconnectAsync(true);
-    }
+        var msg = new Message
+        {
+            Raw = Convert.ToBase64String(Encoding.UTF8.GetBytes(mensagemRaw))
+                  .Replace('+', '-').Replace('/', '_').Replace("=", "")
+        };
 
-    public async Task SendPasswordResetCodeAsync(string to, string code)
-    {
-        var message = new MimeMessage();
-        var fromName = _config["Smtp:FromName"] ?? "NoReply";
-        var fromEmail = _config["Smtp:FromEmail"] ?? _config["Smtp:User"];
-        message.From.Add(new MailboxAddress(fromName, fromEmail));
-        message.To.Add(MailboxAddress.Parse(to));
-        message.Subject = "Código para reset de senha";
-
-        var bodyText = $"Você solicitou redefinição de senha. Use este código para alterar sua senha: {code}\n\nEsse código expira em 30 minutos. Se você não solicitou, ignore este email.";
-        message.Body = new TextPart("plain") { Text = bodyText };
-
-        using var client = new SmtpClient();
-        var host = _config["Smtp:Host"] ?? throw new InvalidOperationException("Smtp:Host não configurado");
-        var port = int.Parse(_config["Smtp:Port"] ?? "587");
-        var user = _config["Smtp:User"];
-        var pass = _config["Smtp:Pass"];
-
-        await client.ConnectAsync(host, port, MailKit.Security.SecureSocketOptions.StartTls);
-        if (!string.IsNullOrEmpty(user))
-            await client.AuthenticateAsync(user, pass ?? string.Empty);
-
-        await client.SendAsync(message);
-        await client.DisconnectAsync(true);
+        // 5. Envia de fato
+        await service.Users.Messages.Send(msg, "me").ExecuteAsync();
     }
 }

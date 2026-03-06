@@ -57,7 +57,7 @@ public class UsuarioController : ControllerBase
 
         try
         {
-            await _emailService.SendVerificationCodeAsync(usuario.Email, code);
+            await _emailService.EnviarCodigo(usuario.Email, code, "Seu código de verificação é:", "Alteração de senha");
         }
         catch (Exception ex)
         {
@@ -65,6 +65,44 @@ public class UsuarioController : ControllerBase
         }
 
         return Ok(new { message = "Usuário criado. Código de verificação enviado para o email." });
+    }
+
+    // POST: api/Usuario/solicitarverificacao
+    [HttpPost("solicitarverificacao")]
+    public async Task<IActionResult> SolicitarVerificacao([FromBody] EmailBody dto)
+    {
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        if (usuario == null)
+            return BadRequest("Usuário não encontrado");
+
+        if (usuario.EmailConfirmado)
+            return BadRequest("Email já confirmado");
+
+        // Reutiliza código existente se ainda válido, senão gera um novo
+        string code;
+        if (!string.IsNullOrEmpty(usuario.CodigoVerificacao) && usuario.ExpiracaoVerificacao.HasValue && usuario.ExpiracaoVerificacao.Value > DateTime.UtcNow)
+        {
+            code = usuario.CodigoVerificacao;
+        }
+        else
+        {
+            code = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+            usuario.CodigoVerificacao = code;
+            usuario.ExpiracaoVerificacao = DateTime.UtcNow.AddMinutes(30);
+            _context.Usuarios.Update(usuario);
+            await _context.SaveChangesAsync();
+        }
+
+        try
+        {
+            await _emailService.EnviarCodigo(usuario.Email, code, "Seu código de verificação é:", "Verifique seu e-mail");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Falha ao enviar email: {ex.Message}");
+        }
+
+        return Ok(new { message = "Código de verificação enviado para o email." });
     }
 
     // POST: api/Usuario/verificar
@@ -136,7 +174,7 @@ public class UsuarioController : ControllerBase
 
         try
         {
-            await _emailService.SendPasswordResetCodeAsync(usuario.Email, code);
+            await _emailService.EnviarCodigo(usuario.Email, code, "Use este código para alterar sua senha:", "Altere sua senha");
         }
         catch (Exception ex)
         {
