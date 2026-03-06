@@ -29,14 +29,10 @@ public class EmailService : IEmailService
         {
             Env.Load(".env");
         }
-            // 1. Pega as chaves das variáveis de ambiente do Render
-            var clientId = Environment.GetEnvironmentVariable("GMAIL_CLIENT_ID");
+
+        var clientId = Environment.GetEnvironmentVariable("GMAIL_CLIENT_ID");
         var clientSecret = Environment.GetEnvironmentVariable("GMAIL_CLIENT_SECRET");
         var refreshToken = Environment.GetEnvironmentVariable("GMAIL_REFRESH_TOKEN");
-
-        Console.WriteLine($"DEBUG RENDER - ID presente: {!string.IsNullOrEmpty(clientId)}");
-        Console.WriteLine($"DEBUG RENDER - Secret presente: {!string.IsNullOrEmpty(clientSecret)}");
-        Console.WriteLine($"DEBUG RENDER - Token presente: {!string.IsNullOrEmpty(refreshToken)}");
 
         var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {
