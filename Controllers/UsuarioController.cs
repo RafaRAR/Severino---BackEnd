@@ -10,7 +10,9 @@ namespace APIseverino.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class UsuarioController : ControllerBase
+
+
+public class usuarioController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _config;
@@ -22,21 +24,28 @@ public class UsuarioController : ControllerBase
     public record EmailBody(string Email);
     public record ResetBody(string Email, string Codigo, string NovaSenha);
 
-    public UsuarioController(AppDbContext context, IConfiguration config, IEmailService emailService)
+    public usuarioController(AppDbContext context, IConfiguration config, IEmailService emailService)
     {
         _context = context;
         _config = config;
         _emailService = emailService;
     }
 
-    // POST: api/Usuario/registrar
+    // POST: api/usuario/registrar
     [HttpPost("registrar")]
     public async Task<IActionResult> Registrar([FromBody] RegistroBody dto)
     {
-        if (await _context.Usuarios.AnyAsync(u => u.Email == dto.Email))
+        var emailExiste = await _context.Usuarios
+            .AnyAsync(u => u.Email == dto.Email);
+
+        if (emailExiste)
             return BadRequest("Email já existe");
 
         PasswordHelper.CriarHashSenha(dto.Senha, out byte[] hash, out byte[] salt);
+
+        var code = RandomNumberGenerator
+            .GetInt32(100000, 999999)
+            .ToString();
 
         var usuario = new Usuario
         {
@@ -44,27 +53,32 @@ public class UsuarioController : ControllerBase
             Email = dto.Email,
             SenhaHash = hash,
             SenhaSalt = salt,
-            EmailConfirmado = false
+            EmailConfirmado = false,
+            CodigoVerificacao = code,
+            ExpiracaoVerificacao = DateTime.UtcNow.AddMinutes(30)
         };
-
-        // Gera código de 6 dígitos criptograficamente seguro
-        var code = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
-        usuario.CodigoVerificacao = code;
-        usuario.ExpiracaoVerificacao = DateTime.UtcNow.AddMinutes(30);
-
-        _context.Usuarios.Add(usuario);
-        await _context.SaveChangesAsync();
 
         try
         {
-            await _emailService.EnviarCodigo(usuario.Email, code, "Seu código de verificação é:", "Alteração de senha");
+            await _emailService.EnviarCodigo(
+                usuario.Email,
+                code,
+                "Seu código de verificação é:",
+                "Verificação de conta"
+            );
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Falha ao enviar email: {ex.Message}");
         }
 
-        return Ok(new { message = "Usuário criado. Código de verificação enviado para o email." });
+        _context.Usuarios.Add(usuario);
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Usuário criado. Código de verificação enviado para o email."
+        });
     }
 
     // POST: api/Usuario/solicitarverificacao

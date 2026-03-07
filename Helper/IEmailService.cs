@@ -14,20 +14,20 @@ namespace APIseverino.Helpers;
 
 public interface IEmailService
 {
-    Task EnviarCodigo(String destinatario, String codigo, String funcao, String titulo);
+    Task EnviarCodigo(string destinatario, string codigo, string funcao, string titulo);
 }
+
 public class EmailService : IEmailService
 {
-    public async Task EnviarCodigo(String destinatario, String codigo, String funcao, String titulo)
+    public async Task EnviarCodigo(string destinatario, string codigo, string funcao, string titulo)
     {
-        // Carrega o arquivo de teste especificamente
-        if (File.Exists(".env.test"))
+        // Carrega .env apenas se as variáveis ainda não existirem
+        if (Environment.GetEnvironmentVariable("GMAIL_CLIENT_ID") == null)
         {
-            Env.Load(".env.test");
-        }
-        else
-        {
-            Env.Load(".env");
+            if (File.Exists(".env.test"))
+                Env.Load(".env.test");
+            else if (File.Exists(".env"))
+                Env.Load(".env");
         }
 
         var clientId = Environment.GetEnvironmentVariable("GMAIL_CLIENT_ID");
@@ -45,32 +45,41 @@ public class EmailService : IEmailService
             DataStore = null
         });
 
-        // Aqui criamos a credencial DIRETAMENTE com o refresh token do Render
+        // Credencial usando Refresh Token
         var credential = new UserCredential(flow, "user", new TokenResponse
         {
             RefreshToken = refreshToken
         });
 
-        // O SDK do Google vai renovar o Access Token (3600s) automaticamente usando o Refresh Token
         var service = new GmailService(new BaseClientService.Initializer()
         {
             HttpClientInitializer = credential,
             ApplicationName = "APIseverino"
         });
 
-        // 4. Monta a mensagem (Formato RFC 822)
-        string mensagemRaw = $"To: {destinatario}\r\n" +
-                            $"Subject: {titulo}\r\n" +
-                            "Content-Type: text/html; charset=utf-8\r\n\r\n" +
-                            $"<p>{funcao} {codigo}<br><br>\r\n\r\nEsse código expira em 30 minutos. Se você não solicitou, ignore este email.</p>";
+        // Codifica o Subject em UTF8 corretamente
+        var subjectEncoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(titulo));
+
+        // Monta mensagem RFC 822
+        string mensagemRaw =
+            $"To: {destinatario}\r\n" +
+            $"Subject: =?UTF-8?B?{subjectEncoded}?=\r\n" +
+            "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+            $"<p>{funcao} {codigo}<br><br>" +
+            $"Esse código expira em 30 minutos. Se você não solicitou, ignore este email.</p>";
+
+        // UTF8 sem BOM para evitar problemas de encoding
+        var bytes = new UTF8Encoding(false).GetBytes(mensagemRaw);
 
         var msg = new Message
         {
-            Raw = Convert.ToBase64String(Encoding.UTF8.GetBytes(mensagemRaw))
-                  .Replace('+', '-').Replace('/', '_').Replace("=", "")
+            Raw = Convert.ToBase64String(bytes)
+                .Replace('+', '-')
+                .Replace('/', '_')
+                .Replace("=", "")
         };
 
-        // 5. Envia de fato
+        // Envia email
         await service.Users.Messages.Send(msg, "me").ExecuteAsync();
     }
 }
