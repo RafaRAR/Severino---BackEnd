@@ -25,8 +25,11 @@ public class Usuario
 
     public DateTime? ExpiracaoResetSenha { get; set; }
 
-    
-    public List<Post> Posts { get; set; } = new();
+    public string? CodigoDelete { get; set; }
+
+    public DateTime? ExpiracaoDelete { get; set; }
+
+    public List<Post>? Posts { get; set; }
 
     public Cadastro? Cadastro { get; set; }
 }

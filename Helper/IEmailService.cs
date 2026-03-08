@@ -26,7 +26,7 @@ public class EmailService : IEmailService
         {
             if (File.Exists(".env.test"))
                 Env.Load(".env.test");
-            else if (File.Exists(".env"))
+            else
                 Env.Load(".env");
 
             var clientId = Environment.GetEnvironmentVariable("GMAIL_CLIENT_ID");

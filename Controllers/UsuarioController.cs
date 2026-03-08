@@ -23,6 +23,7 @@ public class usuarioController : ControllerBase
     public record VerifyBody(string Email, string Codigo);
     public record EmailBody(string Email);
     public record ResetBody(string Email, string Codigo, string NovaSenha);
+    public record DeleteBody(int Id);
 
     public usuarioController(AppDbContext context, IConfiguration config, IEmailService emailService)
     {
@@ -228,5 +229,27 @@ public class usuarioController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Senha atualizada com sucesso." });
+    }
+
+    [HttpDelete("deletar")]
+    public async Task<IActionResult> Deletar(int id)
+    {
+        var usuario = await _context.Usuarios
+            .Include(u => u.Cadastro)
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (usuario == null)
+            return NotFound("Usuário não encontrado");
+
+        if (usuario.Cadastro != null)
+        {
+            _context.Cadastros.Remove(usuario.Cadastro);
+        }
+
+        _context.Usuarios.Remove(usuario);
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 }
