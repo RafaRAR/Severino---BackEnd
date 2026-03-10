@@ -80,6 +80,7 @@ public class postController : ControllerBase
                 p.Endereco,
                 p.Cep,
                 p.Contato,
+                UsuarioId = p.Usuario.Id,
                 NomeUsuario = p.Usuario.Nome
             })
             .ToListAsync();
@@ -103,6 +104,7 @@ public class postController : ControllerBase
                 p.Endereco,
                 p.Cep,
                 p.Contato,
+                UsuarioId = p.Usuario.Id,
                 NomeUsuario = p.Usuario.Nome
             })
             .ToListAsync();
@@ -170,6 +172,7 @@ public class postController : ControllerBase
                 p.Endereco,
                 p.Cep,
                 p.Contato,
+                UsuarioId = p.Usuario.Id,
                 NomeUsuario = p.Usuario.Nome
             })
             .FirstOrDefaultAsync();
