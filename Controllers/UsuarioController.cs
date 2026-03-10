@@ -39,9 +39,18 @@ public class usuarioController : ControllerBase
     {
         var emailExiste = await _context.Usuarios
             .AnyAsync(u => u.Email == dto.Email);
-
+        
         if (emailExiste)
-            return BadRequest("Email já existe");
+        {
+            var emailConfirmado = await _context.Usuarios
+                .Where(u => u.Email == dto.Email)
+                .Select(u => u.EmailConfirmado)
+                .FirstOrDefaultAsync();
+            if (emailConfirmado)
+                return BadRequest("Email já existe");
+            else
+                return Ok(new { message = "Usuário não verificado" });
+        }
 
         PasswordHelper.CriarHashSenha(dto.Senha, out byte[] hash, out byte[] salt);
 
@@ -166,8 +175,8 @@ public class usuarioController : ControllerBase
             return Unauthorized("Senha inválida");
 
         if (!usuario.EmailConfirmado)
-            return Unauthorized("Email não confirmado");
-
+            return Ok(new { message = "Usuário não verificado" });
+        
         var token = TokenService.GerarToken(usuario, _config);
 
         return Ok(new { token, usuario.Id });
@@ -232,7 +241,7 @@ public class usuarioController : ControllerBase
         return Ok(new { message = "Senha atualizada com sucesso." });
     }
 
-    // POST: api/usuario/deletar
+    // POST: api/usuario/deletar/id
     [HttpPost("deletar/{Id}")]
     public async Task<IActionResult> Deletar(int Id)
     {
