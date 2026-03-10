@@ -78,7 +78,7 @@ public class postController : ControllerBase
     }
 
     // GET: api/post/usuario/1
-    [HttpGet("getposts/{usuarioId}")]
+    [HttpGet("getposts/usuario/{usuarioId}")]
     public async Task<IActionResult> GetPostsPorUsuario(int usuarioId)
     {
         var posts = await _context.Posts
@@ -141,5 +141,28 @@ public class postController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok("Post deletado com sucesso");
+    }
+    // GET: api/post/getpost/5
+    [HttpGet("getpost/{idpost}")]
+    public async Task<IActionResult> GetPostPorId(int idpost)
+    {
+        var post = await _context.Posts
+            .Where(p => p.Id == idpost)
+            .Select(p => new
+            {
+                p.Id,
+                p.Titulo,
+                p.Conteudo,
+                p.DataCriacao,
+                p.Endereco,
+                p.Cep,
+                p.Contato
+            })
+            .FirstOrDefaultAsync();
+
+        if (post == null)
+            return NotFound("Post não encontrado");
+
+        return Ok(post);
     }
 }
