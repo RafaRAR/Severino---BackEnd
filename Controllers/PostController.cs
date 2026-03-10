@@ -71,18 +71,6 @@ public class postController : ControllerBase
     {
         var posts = await _context.Posts
             .Include(p => p.Usuario)
-            .ThenInclude(u => u.Cadastro)
-            .ToListAsync();
-
-        return Ok(posts);
-    }
-
-    // GET: api/post/usuario/1
-    [HttpGet("getposts/{usuarioId}")]
-    public async Task<IActionResult> GetPostsPorUsuario(int usuarioId)
-    {
-        var posts = await _context.Posts
-            .Where(p => p.UsuarioId == usuarioId)
             .Select(p => new
             {
                 p.Id,
@@ -91,7 +79,31 @@ public class postController : ControllerBase
                 p.DataCriacao,
                 p.Endereco,
                 p.Cep,
-                p.Contato
+                p.Contato,
+                NomeUsuario = p.Usuario.Nome
+            })
+            .ToListAsync();
+
+        return Ok(posts);
+    }
+
+    // GET: api/post/usuario/1
+    [HttpGet("getposts/usuario/{usuarioId}")]
+    public async Task<IActionResult> GetPostsPorUsuario(int usuarioId)
+    {
+        var posts = await _context.Posts
+            .Where(p => p.UsuarioId == usuarioId)
+            .Include(p => p.Usuario)
+            .Select(p => new
+            {
+                p.Id,
+                p.Titulo,
+                p.Conteudo,
+                p.DataCriacao,
+                p.Endereco,
+                p.Cep,
+                p.Contato,
+                NomeUsuario = p.Usuario.Nome
             })
             .ToListAsync();
 
@@ -142,4 +154,30 @@ public class postController : ControllerBase
 
         return Ok("Post deletado com sucesso");
     }
+    // GET: api/post/getpost/5
+    [HttpGet("getpost/{idpost}")]
+    public async Task<IActionResult> GetPostPorId(int idpost)
+    {
+        var post = await _context.Posts
+            .Where(p => p.Id == idpost)
+            .Include(p => p.Usuario)
+            .Select(p => new
+            {
+                p.Id,
+                p.Titulo,
+                p.Conteudo,
+                p.DataCriacao,
+                p.Endereco,
+                p.Cep,
+                p.Contato,
+                NomeUsuario = p.Usuario.Nome
+            })
+            .FirstOrDefaultAsync();
+
+        if (post == null)
+            return NotFound("Post não encontrado");
+
+        return Ok(post);
+    }
+    
 }
