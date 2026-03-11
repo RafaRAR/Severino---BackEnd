@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using APIseverino.Data;
 using APIseverino.Models;
+using Imagekit.Sdk;
+
 
 namespace APIseverino.Controllers;
 
@@ -10,10 +12,12 @@ namespace APIseverino.Controllers;
 public class postController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ImageKitService _imageKitService;
 
-    public postController(AppDbContext context)
+    public postController(AppDbContext context, ImageKitService imageKitService)
     {
         _context = context;
+        _imageKitService = imageKitService;
     }
 
     public record PostBody(
@@ -21,17 +25,23 @@ public class postController : ControllerBase
      string Conteudo,
      string? Endereco,
      string? Cep,
-     string? Contato);
+     string? Contato,
+     IFormFile? Imagem
+ );
 
-    public record UpdatePostBody(string Titulo,
-    string Conteudo,
-    string? Endereco,
-    string? Cep,
-    string? Contato);
+    public record UpdatePostBody(
+     string? Titulo,
+     string? Conteudo,
+     string? Endereco,
+     string? Cep,
+     string? Contato,
+     IFormFile? Imagem
+ );
 
     // POST: api/post/postar/2
+    // POST: api/post/postar/2
     [HttpPost("postar/{usuarioId}")]
-    public async Task<IActionResult> Postar(int usuarioId, [FromBody] PostBody dto)
+    public async Task<IActionResult> Postar(int usuarioId, [FromForm] PostBody dto)
     {
         var usuario = await _context.Usuarios
             .Include(u => u.Cadastro)
@@ -40,12 +50,20 @@ public class postController : ControllerBase
         if (usuario == null)
             return BadRequest("Usuário não encontrado");
 
+        string? imageUrl = null;
+
+        if (dto.Imagem != null)
+        {
+            imageUrl = await _imageKitService.UploadImage(dto.Imagem);
+        }
+
         var post = new Post
         {
             UsuarioId = usuarioId,
             Titulo = dto.Titulo,
             Conteudo = dto.Conteudo,
             DataCriacao = DateTime.UtcNow,
+            ImagemUrl = imageUrl,
 
             Endereco = string.IsNullOrEmpty(dto.Endereco)
                 ? usuario.Cadastro?.Endereco
@@ -80,7 +98,9 @@ public class postController : ControllerBase
                 p.Endereco,
                 p.Cep,
                 p.Contato,
-                NomeUsuario = p.Usuario.Nome
+                p.ImagemUrl,
+                NomeUsuario = p.Usuario.Nome,
+                UsuarioId = p.Usuario.Id,
             })
             .ToListAsync();
 
@@ -103,7 +123,9 @@ public class postController : ControllerBase
                 p.Endereco,
                 p.Cep,
                 p.Contato,
-                NomeUsuario = p.Usuario.Nome
+                p.ImagemUrl,
+                NomeUsuario = p.Usuario.Nome,
+                UsuarioId = p.Usuario.Id,
             })
             .ToListAsync();
 
@@ -114,7 +136,7 @@ public class postController : ControllerBase
     }
     // PUT: api/post/editar/5
     [HttpPut("editar/{idpost}")]
-    public async Task<IActionResult> EditarPost(int idpost, [FromBody] UpdatePostBody dto)
+    public async Task<IActionResult> EditarPost(int idpost, [FromForm] UpdatePostBody dto)
     {
         var post = await _context.Posts.FindAsync(idpost);
 
@@ -135,6 +157,12 @@ public class postController : ControllerBase
 
         if (!string.IsNullOrEmpty(dto.Contato))
             post.Contato = dto.Contato;
+
+        if (dto.Imagem != null)
+        {
+            var imageUrl = await _imageKitService.UploadImage(dto.Imagem);
+            post.ImagemUrl = imageUrl;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -170,7 +198,9 @@ public class postController : ControllerBase
                 p.Endereco,
                 p.Cep,
                 p.Contato,
-                NomeUsuario = p.Usuario.Nome
+                p.ImagemUrl,
+                NomeUsuario = p.Usuario.Nome,
+                UsuarioId = p.Usuario.Id,
             })
             .FirstOrDefaultAsync();
 
@@ -179,5 +209,4 @@ public class postController : ControllerBase
 
         return Ok(post);
     }
-    
 }
