@@ -39,7 +39,6 @@ public class postController : ControllerBase
  );
 
     // POST: api/post/postar/2
-    // POST: api/post/postar/2
     [HttpPost("postar/{usuarioId}")]
     public async Task<IActionResult> Postar(int usuarioId, [FromForm] PostBody dto)
     {
@@ -54,7 +53,14 @@ public class postController : ControllerBase
 
         if (dto.Imagem != null)
         {
-            imageUrl = await _imageKitService.UploadImage(dto.Imagem);
+            try
+            {
+                imageUrl = await _imageKitService.UploadImage(dto.Imagem);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Erro ao fazer upload da imagem: {ex.Message}");
+            }
         }
 
         var post = new Post

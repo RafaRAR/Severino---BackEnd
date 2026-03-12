@@ -209,7 +209,7 @@ public class usuarioController : ControllerBase
         return Ok(new { message = "Código de reset enviado para o email." });
     }
 
-    // POST: api/Usuario/resetar
+    // POST: api/usuario/resetar
     [HttpPost("resetar")]
     public async Task<IActionResult> Resetar([FromBody] ResetBody dto)
     {

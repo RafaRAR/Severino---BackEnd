@@ -62,7 +62,9 @@ public class EmailService : IEmailService
         string mensagemRaw =
             $"To: {destinatario}\r\n" +
             $"Subject: =?UTF-8?B?{subjectEncoded}?=\r\n" +
-            "Content-Type: text/html; charset=utf-8\r\n\r\n" +
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: text/html; charset=utf-8\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\n" +
             $"<p>{funcao} {codigo}<br><br>" +
             $"{segprgf}</p>";
 

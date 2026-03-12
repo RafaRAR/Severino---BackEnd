@@ -7,7 +7,11 @@ RUN apt-get update && apt-get install -y locales \
 
 ENV LANG=pt_BR.UTF-8
 ENV LC_ALL=pt_BR.UTF-8
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 ENV LANGUAGE=pt_BR:pt
+
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
 COPY APIseverino.csproj .
 RUN dotnet restore
