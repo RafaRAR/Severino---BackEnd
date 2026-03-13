@@ -1,18 +1,23 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using APIseverino.Data;
 using APIseverino.Helpers;
+using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Npgsql;
+using System.Text;
 
+if (File.Exists(".env.test"))
+    Env.Load(".env.test");
+else if (File.Exists(".env"))
+    Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<ImageKitService>();
 
-// DB
+// DB (Postgres)
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+    options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL")));
 
 // Controllers
 builder.Services.AddControllers();
@@ -21,7 +26,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Registrar serviço de email (implementação usa MailKit)
+// Registrar serviço de email (implementação usa MailKit / Resend conforme configurado)
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 // JWT

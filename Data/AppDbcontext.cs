@@ -80,7 +80,7 @@ namespace APIseverino.Data
                       .IsRequired();
 
                 entity.Property(p => p.DataCriacao)
-                      .HasDefaultValueSql("GETDATE()");
+                      .HasDefaultValueSql("NOW()");
 
                 entity.HasOne(p => p.Usuario)
                       .WithMany(u => u.Posts)
