@@ -9,8 +9,8 @@ using System.Text;
 
 if (File.Exists(".env.test"))
     Env.Load(".env.test");
-else if (File.Exists(".env"))
-    Env.Load();
+else
+    Env.Load(".env");
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<ImageKitService>();
