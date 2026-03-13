@@ -8,6 +8,7 @@ using Npgsql;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddScoped<ImageKitService>();
 
 // Carrega .env (tenta ambos os nomes)
 var envPath1 = Path.Combine(Directory.GetCurrentDirectory(), ".env.test");

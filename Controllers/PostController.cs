@@ -124,9 +124,10 @@ public class postController : ControllerBase
         var posts = await _context.Posts
             .Where(p => p.UsuarioId == usuarioId)
             .Include(p => p.Usuario)
+            .ThenInclude(u => u.Cadastro)
             .Select(p => new
             {
-                p.Id,
+               p.Id,
                 p.Titulo,
                 p.Conteudo,
                 p.DataCriacao,
@@ -137,6 +138,9 @@ public class postController : ControllerBase
                 p.ImagemUrl,
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
+                ImagemCadastro = p.Usuario.Cadastro != null
+    ? p.Usuario.Cadastro.ImagemUrl
+    : null
             })
             .ToListAsync();
 
@@ -200,6 +204,8 @@ public class postController : ControllerBase
         var post = await _context.Posts
             .Where(p => p.Id == idpost)
             .Include(p => p.Usuario)
+           .ThenInclude(u => u.Cadastro)
+
             .Select(p => new
             {
                 p.Id,
@@ -213,6 +219,9 @@ public class postController : ControllerBase
                 p.ImagemUrl,
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
+                ImagemCadastro = p.Usuario.Cadastro != null
+    ? p.Usuario.Cadastro.ImagemUrl
+    : null
             })
             .FirstOrDefaultAsync();
 
