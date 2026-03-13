@@ -54,14 +54,14 @@ public class EmailService : IEmailService
         });
 
         // Codifica o Subject em UTF8 corretamente
-        var subjectEncoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(titulo));
+        var tituloCodificado = Convert.ToBase64String(Encoding.UTF8.GetBytes(titulo));
 
         String segprgf = "Esse código expira em 30 minutos. Se você não solicitou, ignore este email.";
 
         // Monta mensagem RFC 822
         string mensagemRaw =
             $"To: {destinatario}\r\n" +
-            $"Subject: =?UTF-8?B?{subjectEncoded}?=\r\n" +
+            $"Subject: =?UTF-8?B?{tituloCodificado}?=\r\n" +
             "MIME-Version: 1.0\r\n" +
             "Content-Type: text/html; charset=utf-8\r\n" +
             "Content-Transfer-Encoding: base64\r\n\r\n" +

@@ -68,7 +68,7 @@ namespace APIseverino.Data
                       .HasMaxLength(200);
 
                 entity.Property(u => u.Contato)
-       .IsRequired();
+                    .IsRequired();
 
                 entity.Property(u => u.Cep)
                      .IsRequired();
