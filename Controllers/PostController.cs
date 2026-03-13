@@ -97,7 +97,6 @@ public class postController : ControllerBase
     public async Task<IActionResult> GetPosts()
     {
         var posts = await _context.Posts
-            .Include(p => p.Usuario)
             .Select(p => new
             {
                 p.Id,
@@ -108,9 +107,23 @@ public class postController : ControllerBase
                 p.Cep,
                 p.Role,
                 p.Contato,
+
+                // imagem do post
                 p.ImagemUrl,
+
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
+
+                Cadastro = p.Usuario.Cadastro == null ? null : new
+                {
+                    p.Usuario.Cadastro.Nome,
+                    p.Usuario.Cadastro.Cpf,
+                    p.Usuario.Cadastro.DataNascimento,
+                    p.Usuario.Cadastro.Endereco,
+                    p.Usuario.Cadastro.Cep,
+                    p.Usuario.Cadastro.Contato,
+                    p.Usuario.Cadastro.ImagemUrl
+                }
             })
             .ToListAsync();
 
@@ -123,7 +136,6 @@ public class postController : ControllerBase
     {
         var posts = await _context.Posts
             .Where(p => p.UsuarioId == usuarioId)
-            .Include(p => p.Usuario)
             .Select(p => new
             {
                 p.Id,
@@ -134,9 +146,23 @@ public class postController : ControllerBase
                 p.Cep,
                 p.Role,
                 p.Contato,
+
+                // imagem do post
                 p.ImagemUrl,
+
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
+
+                Cadastro = p.Usuario.Cadastro == null ? null : new
+                {
+                    p.Usuario.Cadastro.Nome,
+                    p.Usuario.Cadastro.Cpf,
+                    p.Usuario.Cadastro.DataNascimento,
+                    p.Usuario.Cadastro.Endereco,
+                    p.Usuario.Cadastro.Cep,
+                    p.Usuario.Cadastro.Contato,
+                    p.Usuario.Cadastro.ImagemUrl
+                }
             })
             .ToListAsync();
 
@@ -193,13 +219,11 @@ public class postController : ControllerBase
 
         return Ok("Post deletado com sucesso");
     }
-    // GET: api/post/getpost/5
     [HttpGet("getpost/{idpost}")]
     public async Task<IActionResult> GetPostPorId(int idpost)
     {
         var post = await _context.Posts
             .Where(p => p.Id == idpost)
-            .Include(p => p.Usuario)
             .Select(p => new
             {
                 p.Id,
@@ -210,9 +234,25 @@ public class postController : ControllerBase
                 p.Cep,
                 p.Role,
                 p.Contato,
+
+                // IMAGEM DO POST (permanece)
                 p.ImagemUrl,
+
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
+
+                Cadastro = p.Usuario.Cadastro == null ? null : new
+                {
+                    p.Usuario.Cadastro.Nome,
+                    p.Usuario.Cadastro.Cpf,
+                    p.Usuario.Cadastro.DataNascimento,
+                    p.Usuario.Cadastro.Endereco,
+                    p.Usuario.Cadastro.Cep,
+                    p.Usuario.Cadastro.Contato,
+
+                    // IMAGEM DO CADASTRO (foto do perfil)
+                    p.Usuario.Cadastro.ImagemUrl
+                }
             })
             .FirstOrDefaultAsync();
 
