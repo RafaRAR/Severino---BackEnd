@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using APIseverino.Data;
 using APIseverino.Models;
@@ -23,6 +23,7 @@ public class postController : ControllerBase
     public record PostBody(
      string Titulo,
      string Conteudo,
+      string Role,
      string? Endereco,
      string? Cep,
      string? Contato,
@@ -31,6 +32,7 @@ public class postController : ControllerBase
 
     public record UpdatePostBody(
      string? Titulo,
+     string Role,
      string? Conteudo,
      string? Endereco,
      string? Cep,
@@ -68,6 +70,7 @@ public class postController : ControllerBase
             UsuarioId = usuarioId,
             Titulo = dto.Titulo,
             Conteudo = dto.Conteudo,
+            Role = dto.Role,
             DataCriacao = DateTime.UtcNow,
             ImagemUrl = imageUrl,
 
@@ -103,6 +106,7 @@ public class postController : ControllerBase
                 p.DataCriacao,
                 p.Endereco,
                 p.Cep,
+                p.Role,
                 p.Contato,
                 p.ImagemUrl,
                 NomeUsuario = p.Usuario.Nome,
@@ -128,6 +132,7 @@ public class postController : ControllerBase
                 p.DataCriacao,
                 p.Endereco,
                 p.Cep,
+                p.Role,
                 p.Contato,
                 p.ImagemUrl,
                 NomeUsuario = p.Usuario.Nome,
@@ -203,6 +208,7 @@ public class postController : ControllerBase
                 p.DataCriacao,
                 p.Endereco,
                 p.Cep,
+                p.Role,
                 p.Contato,
                 p.ImagemUrl,
                 NomeUsuario = p.Usuario.Nome,

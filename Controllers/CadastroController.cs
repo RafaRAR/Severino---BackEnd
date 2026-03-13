@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using APIseverino.Data;
 using APIseverino.Models;
@@ -26,8 +26,8 @@ public class cadastroController : ControllerBase
         DateTime DataNascimento,
         string Contato,
         string Cep,
-        string Endereco,
-        string Role
+        string Endereco
+       
     );
 
     public record UpdateCadastroBody(
@@ -37,8 +37,8 @@ public class cadastroController : ControllerBase
         DateTime? DataNascimento,
         string? Contato,
         string? Cep,
-        string? Endereco,
-        string? Role
+        string? Endereco
+   
     );
 
     // POST: api/cadastro/cadastrar/2
@@ -73,7 +73,7 @@ public class cadastroController : ControllerBase
             Contato = dto.Contato,
             Cep = dto.Cep,
             Endereco = dto.Endereco,
-            Role = dto.Role
+        
         };
 
         _context.Cadastros.Add(cadastro);
@@ -100,7 +100,7 @@ public class cadastroController : ControllerBase
                 c.Contato,
                 c.Cep,
                 c.Endereco,
-                c.Role
+                
             })
             .FirstOrDefaultAsync();
 
@@ -138,8 +138,7 @@ public class cadastroController : ControllerBase
         if (!string.IsNullOrEmpty(dto.Endereco))
             cadastro.Endereco = dto.Endereco;
 
-        if (!string.IsNullOrEmpty(dto.Role))
-            cadastro.Role = dto.Role;
+       
 
         if (dto.Imagem != null)
         {

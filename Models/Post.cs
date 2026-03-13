@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace APIseverino.Models
 {
@@ -14,6 +14,8 @@ namespace APIseverino.Models
         public string? Cep { get; set; } = string.Empty;
         public string? Contato { get; set; } = string.Empty;
         public string? ImagemUrl { get; set; }  // NOVO
+        public string Role { get; set; } = string.Empty;
+
 
         [JsonIgnore]
         public Usuario Usuario { get; set; }
