@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace APIseverino.Migrations
 {
     /// <inheritdoc />
-    public partial class PostgresInitial : Migration
+    public partial class CriarTabelas : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -47,7 +47,6 @@ namespace APIseverino.Migrations
                     Contato = table.Column<string>(type: "text", nullable: false),
                     Cep = table.Column<string>(type: "text", nullable: false),
                     Endereco = table.Column<string>(type: "text", nullable: false),
-                    Role = table.Column<string>(type: "text", nullable: false),
                     ImagemUrl = table.Column<string>(type: "text", nullable: true),
                     UsuarioId = table.Column<int>(type: "integer", nullable: false)
                 },
@@ -75,6 +74,7 @@ namespace APIseverino.Migrations
                     Cep = table.Column<string>(type: "text", nullable: false),
                     Contato = table.Column<string>(type: "text", nullable: false),
                     ImagemUrl = table.Column<string>(type: "text", nullable: true),
+                    Role = table.Column<string>(type: "text", nullable: false),
                     UsuarioId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>

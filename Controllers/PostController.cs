@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using APIseverino.Data;
 using APIseverino.Models;
@@ -23,6 +23,7 @@ public class postController : ControllerBase
     public record PostBody(
      string Titulo,
      string Conteudo,
+      string Role,
      string? Endereco,
      string? Cep,
      string? Contato,
@@ -32,6 +33,7 @@ public class postController : ControllerBase
 
     public record UpdatePostBody(
      string? Titulo,
+     string Role,
      string? Conteudo,
      string? Endereco,
      string? Cep,
@@ -72,6 +74,7 @@ public class postController : ControllerBase
             UsuarioId = usuarioId,
             Titulo = dto.Titulo,
             Conteudo = dto.Conteudo,
+            Role = dto.Role,
             DataCriacao = DateTime.UtcNow,
             ImagemUrl = imageUrl,
 
@@ -135,11 +138,26 @@ public class postController : ControllerBase
                 p.DataCriacao,
                 p.Endereco,
                 p.Cep,
+                p.Role,
                 p.Contato,
+
+                // imagem do post
                 p.ImagemUrl,
+
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
-                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList()
+                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
+
+                Cadastro = p.Usuario.Cadastro == null ? null : new
+                {
+                    p.Usuario.Cadastro.Nome,
+                    p.Usuario.Cadastro.Cpf,
+                    p.Usuario.Cadastro.DataNascimento,
+                    p.Usuario.Cadastro.Endereco,
+                    p.Usuario.Cadastro.Cep,
+                    p.Usuario.Cadastro.Contato,
+                    p.Usuario.Cadastro.ImagemUrl
+                }
             })
             .ToListAsync();
 
@@ -162,11 +180,26 @@ public class postController : ControllerBase
                 p.DataCriacao,
                 p.Endereco,
                 p.Cep,
+                p.Role,
                 p.Contato,
+
+                // imagem do post
                 p.ImagemUrl,
+
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
-                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList()
+                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
+
+                Cadastro = p.Usuario.Cadastro == null ? null : new
+                {
+                    p.Usuario.Cadastro.Nome,
+                    p.Usuario.Cadastro.Cpf,
+                    p.Usuario.Cadastro.DataNascimento,
+                    p.Usuario.Cadastro.Endereco,
+                    p.Usuario.Cadastro.Cep,
+                    p.Usuario.Cadastro.Contato,
+                    p.Usuario.Cadastro.ImagemUrl
+                }
             })
             .ToListAsync();
 
@@ -284,7 +317,6 @@ public class postController : ControllerBase
 
         return Ok("Post deletado com sucesso");
     }
-    // GET: api/post/getpost/5
     [HttpGet("getpost/{idpost}")]
     public async Task<IActionResult> GetPostPorId(int idpost)
     {
@@ -300,11 +332,28 @@ public class postController : ControllerBase
                 p.DataCriacao,
                 p.Endereco,
                 p.Cep,
+                p.Role,
                 p.Contato,
+
+                // IMAGEM DO POST (permanece)
                 p.ImagemUrl,
+
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
-                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList()
+                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
+
+                Cadastro = p.Usuario.Cadastro == null ? null : new
+                {
+                    p.Usuario.Cadastro.Nome,
+                    p.Usuario.Cadastro.Cpf,
+                    p.Usuario.Cadastro.DataNascimento,
+                    p.Usuario.Cadastro.Endereco,
+                    p.Usuario.Cadastro.Cep,
+                    p.Usuario.Cadastro.Contato,
+
+                    // IMAGEM DO CADASTRO (foto do perfil)
+                    p.Usuario.Cadastro.ImagemUrl
+                }
             })
             .FirstOrDefaultAsync();
 

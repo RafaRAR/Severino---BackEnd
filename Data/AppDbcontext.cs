@@ -1,4 +1,4 @@
-﻿using APIseverino.Models;
+using APIseverino.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace APIseverino.Data
@@ -79,6 +79,9 @@ namespace APIseverino.Data
 
                 entity.Property(p => p.Conteudo)
                       .IsRequired();
+
+                entity.Property(c => c.Role)
+                    .IsRequired();
 
                 entity.Property(p => p.DataCriacao)
                       .HasDefaultValueSql("NOW()");
