@@ -3,6 +3,7 @@ using System;
 using APIseverino.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace APIseverino.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260313232429_RemoveRoleFromCadastro")]
+    partial class RemoveRoleFromCadastro
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,16 +55,6 @@ namespace APIseverino.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ImagemUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ImagemUrlUsuario")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Impulsionar")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Titulo")

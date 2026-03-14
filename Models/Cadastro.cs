@@ -11,7 +11,6 @@ public class Cadastro
     public string Contato { get; set; } = string.Empty;
     public string Cep { get; set; } = string.Empty;
     public string Endereco { get; set; } = string.Empty;
-   
     public string? ImagemUrl { get; set; }  // NOVO
     public int UsuarioId { get; set; }
 

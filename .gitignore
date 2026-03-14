@@ -481,3 +481,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+e n v . t e s t  
+ . e n v . t e s t  
+ . e n v  
+ 

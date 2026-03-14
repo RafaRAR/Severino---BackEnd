@@ -27,7 +27,8 @@ public class postController : ControllerBase
      string? Endereco,
      string? Cep,
      string? Contato,
-     IFormFile? Imagem
+     IFormFile? Imagem,
+     List<int>? TagIds
  );
 
     public record UpdatePostBody(
@@ -37,8 +38,11 @@ public class postController : ControllerBase
      string? Endereco,
      string? Cep,
      string? Contato,
-     IFormFile? Imagem
+     IFormFile? Imagem,
+     List<int>? TagIds
  );
+
+
 
     // POST: api/post/postar/2
     [HttpPost("postar/{usuarioId}")]
@@ -90,13 +94,42 @@ public class postController : ControllerBase
         _context.Posts.Add(post);
         await _context.SaveChangesAsync();
 
-        return Ok(post);
+        if (dto.TagIds != null && dto.TagIds.Any())
+        {
+            foreach (var tagId in dto.TagIds)
+            {
+                var tag = await _context.Tags.FindAsync(tagId);
+                if (tag != null)
+                {
+                    post.Tags.Add(tag);
+                }
+                // If not found, ignore or error? For now, ignore.
+            }
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new
+        {
+            post.Id,
+            post.Titulo,
+            post.Conteudo,
+            post.DataCriacao,
+            post.Endereco,
+            post.Cep,
+            post.Contato,
+            post.ImagemUrl,
+            NomeUsuario = usuario.Nome,
+            UsuarioId = post.UsuarioId,
+            Tags = post.Tags.Select(t => new { t.Id, t.Nome }).ToList()
+        });
     }
     // GET: api/post/getposts
     [HttpGet("getposts")]
     public async Task<IActionResult> GetPosts()
     {
         var posts = await _context.Posts
+            .Include(p => p.Usuario)
+            .Include(p => p.Tags)
             .Select(p => new
             {
                 p.Id,
@@ -113,6 +146,7 @@ public class postController : ControllerBase
 
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
+                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
 
                 Cadastro = p.Usuario.Cadastro == null ? null : new
                 {
@@ -136,6 +170,8 @@ public class postController : ControllerBase
     {
         var posts = await _context.Posts
             .Where(p => p.UsuarioId == usuarioId)
+            .Include(p => p.Usuario)
+            .Include(p => p.Tags)
             .Select(p => new
             {
                 p.Id,
@@ -152,6 +188,7 @@ public class postController : ControllerBase
 
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
+                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
 
                 Cadastro = p.Usuario.Cadastro == null ? null : new
                 {
@@ -171,11 +208,46 @@ public class postController : ControllerBase
 
         return Ok(posts);
     }
+
+    // GET: api/post/getposts/tag/1
+    [HttpGet("getposts/tag/{tagId}")]
+    public async Task<IActionResult> GetPostsPorTag(int tagId)
+    {
+        var posts = await _context.Posts
+            .Where(p => p.Tags.Any(t => t.Id == tagId))
+            .Include(p => p.Usuario)
+            .Include(p => p.Tags)
+            .Select(p => new
+            {
+                p.Id,
+                p.Titulo,
+                p.Conteudo,
+                p.DataCriacao,
+                p.Endereco,
+                p.Cep,
+                p.Contato,
+                p.ImagemUrl,
+                NomeUsuario = p.Usuario.Nome,
+                UsuarioId = p.Usuario.Id,
+                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList()
+            })
+            .ToListAsync();
+
+        if (!posts.Any())
+            return NotFound("Nenhum post encontrado para esta tag");
+
+        return Ok(posts);
+    }
+
+
     // PUT: api/post/editar/5
     [HttpPut("editar/{idpost}")]
     public async Task<IActionResult> EditarPost(int idpost, [FromForm] UpdatePostBody dto)
     {
-        var post = await _context.Posts.FindAsync(idpost);
+        var post = await _context.Posts
+            .Include(p => p.Usuario)
+            .Include(p => p.Tags)
+            .FirstOrDefaultAsync(p => p.Id == idpost);
 
         if (post == null)
             return NotFound("Post não encontrado");
@@ -201,9 +273,35 @@ public class postController : ControllerBase
             post.ImagemUrl = imageUrl;
         }
 
+        if (dto.TagIds != null)
+        {
+            post.Tags.Clear();
+            foreach (var tagId in dto.TagIds)
+            {
+                var tag = await _context.Tags.FindAsync(tagId);
+                if (tag != null)
+                {
+                    post.Tags.Add(tag);
+                }
+            }
+        }
+
         await _context.SaveChangesAsync();
 
-        return Ok(post);
+        return Ok(new
+        {
+            post.Id,
+            post.Titulo,
+            post.Conteudo,
+            post.DataCriacao,
+            post.Endereco,
+            post.Cep,
+            post.Contato,
+            post.ImagemUrl,
+            NomeUsuario = post.Usuario.Nome,
+            UsuarioId = post.UsuarioId,
+            Tags = post.Tags.Select(t => new { t.Id, t.Nome }).ToList()
+        });
     }
 
     [HttpDelete("deletarpost/{idpost}")]
@@ -224,6 +322,8 @@ public class postController : ControllerBase
     {
         var post = await _context.Posts
             .Where(p => p.Id == idpost)
+            .Include(p => p.Usuario)
+            .Include(p => p.Tags)
             .Select(p => new
             {
                 p.Id,
@@ -240,6 +340,7 @@ public class postController : ControllerBase
 
                 NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
+                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
 
                 Cadastro = p.Usuario.Cadastro == null ? null : new
                 {

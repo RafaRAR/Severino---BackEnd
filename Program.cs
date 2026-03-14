@@ -1,5 +1,6 @@
 using APIseverino.Data;
 using APIseverino.Helpers;
+using APIseverino.Models;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -107,6 +108,21 @@ app.UseCors("AzurePolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
+
 app.MapControllers();
+
+// Executa uma ação de correção no banco ao iniciar a aplicação
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Posts\" DROP COLUMN IF EXISTS \"Role\";");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Erro ao alterar o banco de dados: {ex.Message}");
+    }
+}
 
 app.Run();

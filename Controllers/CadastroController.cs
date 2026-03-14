@@ -27,7 +27,6 @@ public class cadastroController : ControllerBase
         string Contato,
         string Cep,
         string Endereco
-       
     );
 
     public record UpdateCadastroBody(
@@ -38,7 +37,6 @@ public class cadastroController : ControllerBase
         string? Contato,
         string? Cep,
         string? Endereco
-   
     );
 
     // POST: api/cadastro/cadastrar/2
@@ -72,8 +70,7 @@ public class cadastroController : ControllerBase
             DataNascimento = dto.DataNascimento.ToString("yyyy-MM-dd"),
             Contato = dto.Contato,
             Cep = dto.Cep,
-            Endereco = dto.Endereco,
-        
+            Endereco = dto.Endereco
         };
 
         _context.Cadastros.Add(cadastro);
@@ -99,8 +96,7 @@ public class cadastroController : ControllerBase
                 c.DataNascimento,
                 c.Contato,
                 c.Cep,
-                c.Endereco,
-                
+                c.Endereco
             })
             .FirstOrDefaultAsync();
 
@@ -137,8 +133,6 @@ public class cadastroController : ControllerBase
 
         if (!string.IsNullOrEmpty(dto.Endereco))
             cadastro.Endereco = dto.Endereco;
-
-       
 
         if (dto.Imagem != null)
         {
