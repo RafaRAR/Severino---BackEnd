@@ -12,6 +12,7 @@ namespace APIseverino.Data
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Cadastro> Cadastros { get; set; }
+        public DbSet<Tag> Tags { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,13 +68,13 @@ namespace APIseverino.Data
                       .IsRequired()
                       .HasMaxLength(200);
 
-                entity.Property(u => u.Contato)
+                entity.Property(p => p.Contato)
                     .IsRequired();
 
-                entity.Property(u => u.Cep)
+                entity.Property(p => p.Cep)
                      .IsRequired();
 
-                entity.Property(u => u.Endereco)
+                entity.Property(p => p.Endereco)
                      .IsRequired();
 
                 entity.Property(p => p.Conteudo)
@@ -110,15 +111,27 @@ namespace APIseverino.Data
                 entity.Property(c => c.Endereco)
                      .IsRequired();
 
-                entity.Property(c => c.Role)
-                     .IsRequired();
-
 
                 entity.HasOne(c => c.Usuario)
                       .WithOne(u => u.Cadastro)
                       .HasForeignKey<Cadastro>(c => c.UsuarioId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+
+            modelBuilder.Entity<Tag>(entity =>
+            {
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.Nome)
+                      .IsRequired()
+                      .HasMaxLength(100);
+                entity.HasIndex(t => t.Nome)
+                      .IsUnique();
+            });
+
+            modelBuilder.Entity<Post>()
+                .HasMany(p => p.Tags)
+                .WithMany(t => t.Posts)
+                .UsingEntity(j => j.ToTable("PostTags"));
         }
     }
 }

@@ -19,5 +19,8 @@ namespace APIseverino.Models
         public Usuario Usuario { get; set; }
 
         public int UsuarioId { get; set; }
+
+        [JsonIgnore]
+        public ICollection<Tag> Tags { get; set; } = new List<Tag>();
     }
 }
