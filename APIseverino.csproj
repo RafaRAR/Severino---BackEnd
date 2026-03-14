@@ -22,8 +22,8 @@
     </PackageReference>
     <PackageReference Include="MimeKit" Version="4.15.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="8.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="8.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.6.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.6.2" />
 	<CompilerVisibleProperty Include="UTF8Encoding" />
   </ItemGroup>
 

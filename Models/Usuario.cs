@@ -11,9 +11,9 @@ public class Usuario
 
     public string Email { get; set; } = string.Empty;
 
-    public byte[] SenhaHash { get; set; }
+    public byte[] SenhaHash { get; set; } = null!;
 
-    public byte[] SenhaSalt { get; set; }
+    public byte[] SenhaSalt { get; set; } = null!;
 
     public bool EmailConfirmado { get; set; } = false;
 

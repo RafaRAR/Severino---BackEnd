@@ -56,7 +56,7 @@ public class EmailService : IEmailService
         // Codifica o Subject em UTF8 corretamente
         var tituloCodificado = Convert.ToBase64String(Encoding.UTF8.GetBytes(titulo));
 
-        String segprgf = "Esse código expira em 30 minutos. Se você não solicitou, ignore este email.";
+        String segprgf = "Esse cÃ³digo expira em 30 minutos. Se vocÃª nÃ£o solicitou, ignore este email.";
 
         // Monta mensagem RFC 822
         string mensagemRaw =

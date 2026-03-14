@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using APIseverino.Data;
 using APIseverino.Models;
@@ -12,7 +12,7 @@ namespace APIseverino.Controllers;
 [ApiController]
 
 
-public class usuarioController : ControllerBase
+public class UsuarioController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _config;
@@ -26,7 +26,7 @@ public class usuarioController : ControllerBase
     public record ConfirmDeleteBody(string Codigo);
 
 
-    public usuarioController(AppDbContext context, IConfiguration config, IEmailService emailService)
+    public UsuarioController(AppDbContext context, IConfiguration config, IEmailService emailService)
     {
         _context = context;
         _config = config;

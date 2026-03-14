@@ -7,12 +7,12 @@ namespace APIseverino.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class cadastroController : ControllerBase
+public class CadastroController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly ImageKitService _imageKitService;
 
-    public cadastroController(AppDbContext context, ImageKitService imageKitService)
+    public CadastroController(AppDbContext context, ImageKitService imageKitService)
     {
         _context = context;
         _imageKitService = imageKitService;

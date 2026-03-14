@@ -18,7 +18,7 @@ namespace APIseverino.Models
         public string? Impulsionar { get; set; } = string.Empty;
 
         [JsonIgnore]
-        public Usuario Usuario { get; set; }
+        public Usuario Usuario { get; set; } = null!;
 
         public int UsuarioId { get; set; }
 

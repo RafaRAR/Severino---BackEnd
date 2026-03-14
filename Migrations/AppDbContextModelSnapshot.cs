@@ -54,9 +54,6 @@ namespace APIseverino.Migrations
                     b.Property<string>("ImagemUrl")
                         .HasColumnType("text");
 
-                    b.Property<string>("ImagemUrlUsuario")
-                        .HasColumnType("text");
-
                     b.Property<string>("Impulsionar")
                         .HasColumnType("text");
 

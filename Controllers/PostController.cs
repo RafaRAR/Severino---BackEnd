@@ -9,12 +9,12 @@ namespace APIseverino.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class postController : ControllerBase
+public class PostController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly ImageKitService _imageKitService;
 
-    public postController(AppDbContext context, ImageKitService imageKitService)
+    public PostController(AppDbContext context, ImageKitService imageKitService)
     {
         _context = context;
         _imageKitService = imageKitService;
@@ -96,15 +96,11 @@ public class postController : ControllerBase
 
         if (dto.TagIds != null && dto.TagIds.Any())
         {
-            foreach (var tagId in dto.TagIds)
-            {
-                var tag = await _context.Tags.FindAsync(tagId);
-                if (tag != null)
-                {
-                    post.Tags.Add(tag);
-                }
-                // If not found, ignore or error? For now, ignore.
-            }
+            var tags = await _context.Tags
+                .Where(t => dto.TagIds.Contains(t.Id))
+                .ToListAsync();
+            
+            post.Tags = tags;
             await _context.SaveChangesAsync();
         }
 
@@ -276,14 +272,11 @@ public class postController : ControllerBase
         if (dto.TagIds != null)
         {
             post.Tags.Clear();
-            foreach (var tagId in dto.TagIds)
-            {
-                var tag = await _context.Tags.FindAsync(tagId);
-                if (tag != null)
-                {
-                    post.Tags.Add(tag);
-                }
-            }
+            var tags = await _context.Tags
+                .Where(t => dto.TagIds.Contains(t.Id))
+                .ToListAsync();
+            
+            post.Tags = tags;
         }
 
         await _context.SaveChangesAsync();

@@ -21,7 +21,7 @@ else if (File.Exists(envPath2))
 
 // Lê variável e converte se necessário
 var rawDb = Environment.GetEnvironmentVariable("DATABASE_URL");
-Console.WriteLine("DATABASE_URL presente: " + (!string.IsNullOrEmpty(rawDb)));
+Console.WriteLine("DATABASE_URL presente: " + rawDb);
 
 string connStr = null;
 if (!string.IsNullOrEmpty(rawDb))
@@ -37,8 +37,7 @@ if (!string.IsNullOrEmpty(rawDb))
             Username = userInfo.Length > 0 ? userInfo[0] : "",
             Password = userInfo.Length > 1 ? userInfo[1] : "",
             Database = uri.AbsolutePath.TrimStart('/'),
-            SslMode = SslMode.Require,
-            TrustServerCertificate = true
+            SslMode = SslMode.Require
         };
         connStr = builderConn.ToString();
     }
@@ -73,7 +72,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 // JWT
-var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
+var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"] ?? "ChaveSegurancaPadraoMuitoLongaParaEvitarErros");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -110,19 +109,5 @@ app.UseAuthorization();
 
 
 app.MapControllers();
-
-// Executa uma ação de correção no banco ao iniciar a aplicação
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    try
-    {
-        await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Posts\" DROP COLUMN IF EXISTS \"Role\";");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Erro ao alterar o banco de dados: {ex.Message}");
-    }
-}
 
 app.Run();
