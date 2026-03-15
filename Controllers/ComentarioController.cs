@@ -80,10 +80,10 @@ public class ComentarioController : ControllerBase
 
     // GET: /api/post/comentario/getcomentario/{id}
     [HttpGet("getcomentario/{comentarioId}")]
-    public async Task<IActionResult> GetComentarioPorId(int id)
+    public async Task<IActionResult> GetComentarioPorId(int comentarioId)
     {
         var comentario = await _context.Comentarios
-            .Where(c => c.Id == id)
+            .Where(c => c.Id == comentarioId)
             .Include(c => c.Usuario)
             .Select(c => new
             {
