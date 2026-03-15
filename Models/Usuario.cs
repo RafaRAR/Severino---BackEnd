@@ -32,4 +32,6 @@ public class Usuario
     public List<Post>? Posts { get; set; }
 
     public Cadastro? Cadastro { get; set; }
+
+    public List<Comentario>? Comentarios { get; set; }
 }

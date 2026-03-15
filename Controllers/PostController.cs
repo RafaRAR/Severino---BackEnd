@@ -4,7 +4,6 @@ using APIseverino.Data;
 using APIseverino.Models;
 using Imagekit.Sdk;
 
-
 namespace APIseverino.Controllers;
 
 [Route("api/[controller]")]
@@ -21,27 +20,26 @@ public class PostController : ControllerBase
     }
 
     public record PostBody(
-     string Titulo,
-     string Conteudo,
-      string Role,
-     string? Endereco,
-     string? Cep,
-     string? Contato,
-     IFormFile? Imagem,
-     List<int>? TagIds
- );
+        string Titulo,
+        string Conteudo,
+        string Role,
+        string? Endereco,
+        string? Cep,
+        string? Contato,
+        IFormFile? Imagem,
+        List<int>? TagIds
+    );
 
     public record UpdatePostBody(
-     string? Titulo,
-     string Role,
-     string? Conteudo,
-     string? Endereco,
-     string? Cep,
-     string? Contato,
-     IFormFile? Imagem,
-     List<int>? TagIds
- );
-
+        string? Titulo,
+        string Role,
+        string? Conteudo,
+        string? Endereco,
+        string? Cep,
+        string? Contato,
+        IFormFile? Imagem,
+        List<int>? TagIds
+    );
 
 
     // POST: api/post/postar/2
@@ -119,6 +117,7 @@ public class PostController : ControllerBase
             Tags = post.Tags.Select(t => new { t.Id, t.Nome }).ToList()
         });
     }
+
     // GET: api/post/getposts
     [HttpGet("getposts")]
     public async Task<IActionResult> GetPosts()
@@ -293,7 +292,14 @@ public class PostController : ControllerBase
             post.ImagemUrl,
             NomeUsuario = post.Usuario.Nome,
             UsuarioId = post.UsuarioId,
-            Tags = post.Tags.Select(t => new { t.Id, t.Nome }).ToList()
+            Tags = post.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
+            Comentarios = post.Comentarios.Select(c => new
+            {
+                c.Id,
+                c.Conteudo,
+                c.DataCriacao,
+                NomeUsuario = c.Usuario.Nome
+            }).ToList()
         });
     }
 
@@ -310,6 +316,7 @@ public class PostController : ControllerBase
 
         return Ok("Post deletado com sucesso");
     }
+
     [HttpGet("getpost/{idpost}")]
     public async Task<IActionResult> GetPostPorId(int idpost)
     {
@@ -346,7 +353,14 @@ public class PostController : ControllerBase
 
                     // IMAGEM DO CADASTRO (foto do perfil)
                     p.Usuario.Cadastro.ImagemUrl
-                }
+                },
+                Comentarios = p.Comentarios.Select(c => new
+                {
+                    c.Id,
+                    c.Conteudo,
+                    c.DataCriacao,
+                    NomeUsuario = c.Usuario.Nome
+                }).ToList()
             })
             .FirstOrDefaultAsync();
 

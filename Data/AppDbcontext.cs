@@ -13,6 +13,7 @@ namespace APIseverino.Data
         public DbSet<Post> Posts { get; set; }
         public DbSet<Cadastro> Cadastros { get; set; }
         public DbSet<Tag> Tags { get; set; }
+        public DbSet<Comentario> Comentarios { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -135,6 +136,28 @@ namespace APIseverino.Data
                 .HasMany(p => p.Tags)
                 .WithMany(t => t.Posts)
                 .UsingEntity(j => j.ToTable("PostTags"));
+
+            // Comentario configuration (atualizado para o novo modelo reduzido)
+            modelBuilder.Entity<Comentario>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+
+                entity.Property(c => c.Conteudo)
+                      .IsRequired();
+
+                entity.Property(c => c.DataCriacao)
+                      .HasDefaultValueSql("NOW()");
+
+                entity.HasOne(c => c.Post)
+                      .WithMany(p => p.Comentarios)
+                      .HasForeignKey(c => c.PostId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(c => c.Usuario)
+                      .WithMany(u => u.Comentarios)
+                      .HasForeignKey(c => c.UsuarioId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

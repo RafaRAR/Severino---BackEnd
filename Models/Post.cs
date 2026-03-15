@@ -24,5 +24,8 @@ namespace APIseverino.Models
 
         [JsonIgnore]
         public ICollection<Tag> Tags { get; set; } = new List<Tag>();
+
+        [JsonIgnore]
+        public ICollection<Comentario> Comentarios { get; set; } = new List<Comentario>();
     }
 }
