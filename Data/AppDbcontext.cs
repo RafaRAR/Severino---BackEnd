@@ -137,6 +137,7 @@ namespace APIseverino.Data
                 .WithMany(t => t.Posts)
                 .UsingEntity(j => j.ToTable("PostTags"));
 
+            // Comentario configuration (sincronizado com Models/Comentario.cs)
             modelBuilder.Entity<Comentario>(entity =>
             {
                 entity.HasKey(c => c.Id);
@@ -152,14 +153,17 @@ namespace APIseverino.Data
                 entity.Property(c => c.DataCriacao)
                       .HasDefaultValueSql("NOW()");
 
+                // FK explícita UsuarioId presente no modelo
+                entity.HasOne(c => c.Usuario)
+                      .WithMany(u => u.Comentarios)
+                      .HasForeignKey(c => c.UsuarioId)
+                      .IsRequired()
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Relação com Post via PostId
                 entity.HasOne(c => c.Post)
                       .WithMany(p => p.Comentarios)
                       .HasForeignKey(c => c.PostId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(c => c.Usuario)
-                      .WithMany(u => u.Comentarios)
-                      .HasForeignKey("UsuarioId")
                       .IsRequired()
                       .OnDelete(DeleteBehavior.Cascade);
             });

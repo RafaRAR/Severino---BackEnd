@@ -1,8 +1,9 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using APIseverino.Data;
+using APIseverino.Migrations;
 using APIseverino.Models;
 using Imagekit.Sdk;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace APIseverino.Controllers;
 
@@ -39,9 +40,10 @@ public class ComentarioController : ControllerBase
         if (post == null)
             return BadRequest("Post não encontrado");
 
-        var comentario = new Comentario
+        var comentario = new Models.Comentario
         {
-            Usuario = usuario,
+            // Usar o usuário que está comentando (parametro) — não navegar pelo post.Usuario que pode ser nulo
+            UsuarioId = usuario.Id,
             PostId = dto.PostId,
             Conteudo = dto.Conteudo,
             DataCriacao = DateTime.UtcNow
@@ -52,7 +54,8 @@ public class ComentarioController : ControllerBase
 
         return Ok(new
         {
-            comentario.Usuario,
+            comentario.Id,
+            comentario.UsuarioId,
             comentario.Conteudo
         });
     }
@@ -67,7 +70,8 @@ public class ComentarioController : ControllerBase
             .OrderBy(c => c.DataCriacao)
             .Select(c => new
             {
-                c.Usuario,
+                c.Id,
+                UsuarioId = c.Usuario.Id,
                 c.Conteudo
             })
             .ToListAsync();
@@ -87,7 +91,8 @@ public class ComentarioController : ControllerBase
             .Include(c => c.Usuario)
             .Select(c => new
             {
-                c.Usuario,
+                c.Id,
+                UsuarioId = c.Usuario.Id,
                 c.Conteudo
             })
             .FirstOrDefaultAsync();
@@ -98,7 +103,7 @@ public class ComentarioController : ControllerBase
         return Ok(comentario);
     }
 
-    // PUT: /api/post/comentario/editarcomentario/{id}
+    // PUT: /api/post/comentario/editarcomentario/{comentarioId}
     [HttpPut("editarcomentario/{comentarioId}")]
     public async Task<IActionResult> EditarComentario(int id, [FromBody] UpdateComentarioBody dto)
     {
@@ -116,16 +121,16 @@ public class ComentarioController : ControllerBase
 
         return Ok(new
         {
-            comentario.Usuario,
+            UsuarioId = comentario.Usuario.Id,
             comentario.Conteudo
         });
     }
 
-    // DELETE: /api/post/comentario/{id}
+    // DELETE: /api/post/comentario/{comentarioId}
     [HttpDelete("comentario/{comentarioId}")]
-    public async Task<IActionResult> DeletarComentario(int id)
+    public async Task<IActionResult> DeletarComentario(int comentarioId)
     {
-        var comentario = await _context.Comentarios.FindAsync(id);
+        var comentario = await _context.Comentarios.FindAsync(comentarioId);
 
         if (comentario == null)
             return NotFound("Comentário não encontrado");

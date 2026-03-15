@@ -12,9 +12,13 @@ namespace APIseverino.Models
 
         public decimal ValorDeLance { get; set; }
 
+        public int UsuarioId { get; set; }
+
+        [JsonIgnore]
         public Usuario Usuario { get; set; } = null!;
 
         public int PostId { get; set; }
+
         [JsonIgnore]
         public Post Post { get; set; } = null!;
     }
