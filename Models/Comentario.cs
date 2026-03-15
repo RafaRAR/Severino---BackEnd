@@ -10,8 +10,8 @@ namespace APIseverino.Models
 
         public string Conteudo { get; set; } = string.Empty;
 
-        public int UsuarioId { get; set; }
-        [JsonIgnore]
+        public decimal ValorDeLance { get; set; }
+
         public Usuario Usuario { get; set; } = null!;
 
         public int PostId { get; set; }

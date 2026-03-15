@@ -137,12 +137,16 @@ namespace APIseverino.Data
                 .WithMany(t => t.Posts)
                 .UsingEntity(j => j.ToTable("PostTags"));
 
-            // Comentario configuration (atualizado para o novo modelo reduzido)
             modelBuilder.Entity<Comentario>(entity =>
             {
                 entity.HasKey(c => c.Id);
 
                 entity.Property(c => c.Conteudo)
+                      .IsRequired();
+
+                entity.Property(c => c.ValorDeLance)
+                      .HasColumnType("decimal(18,2)")
+                      .HasDefaultValue(0m)
                       .IsRequired();
 
                 entity.Property(c => c.DataCriacao)
@@ -155,7 +159,8 @@ namespace APIseverino.Data
 
                 entity.HasOne(c => c.Usuario)
                       .WithMany(u => u.Comentarios)
-                      .HasForeignKey(c => c.UsuarioId)
+                      .HasForeignKey("UsuarioId")
+                      .IsRequired()
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }

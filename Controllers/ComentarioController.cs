@@ -41,7 +41,7 @@ public class ComentarioController : ControllerBase
 
         var comentario = new Comentario
         {
-            UsuarioId = usuarioId,
+            Usuario = usuario,
             PostId = dto.PostId,
             Conteudo = dto.Conteudo,
             DataCriacao = DateTime.UtcNow
@@ -52,7 +52,7 @@ public class ComentarioController : ControllerBase
 
         return Ok(new
         {
-            NomeUsuario = usuario.Nome,
+            comentario.Usuario,
             comentario.Conteudo
         });
     }
@@ -67,7 +67,7 @@ public class ComentarioController : ControllerBase
             .OrderBy(c => c.DataCriacao)
             .Select(c => new
             {
-                NomeUsuario = c.Usuario.Nome,
+                c.Usuario,
                 c.Conteudo
             })
             .ToListAsync();
@@ -87,7 +87,7 @@ public class ComentarioController : ControllerBase
             .Include(c => c.Usuario)
             .Select(c => new
             {
-                NomeUsuario = c.Usuario.Nome,
+                c.Usuario,
                 c.Conteudo
             })
             .FirstOrDefaultAsync();
@@ -116,7 +116,7 @@ public class ComentarioController : ControllerBase
 
         return Ok(new
         {
-            NomeUsuario = comentario.Usuario.Nome,
+            comentario.Usuario,
             comentario.Conteudo
         });
     }
