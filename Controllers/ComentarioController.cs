@@ -17,6 +17,7 @@ public class ComentarioController : ControllerBase
     {
         _context = context;
     }
+
     public record ComentarioBody(
         int PostId,
         string Conteudo
@@ -25,6 +26,9 @@ public class ComentarioController : ControllerBase
     public record UpdateComentarioBody(
         string Conteudo
     );
+
+    // DTO para retornar informações do usuário com Id e Nome
+    public record UsuarioDto(int Id, string Nome);
 
     // POST: /api/post/comentario/comentar/{usuarioId}
     [HttpPost("comentar/{usuarioId}")]
@@ -42,7 +46,6 @@ public class ComentarioController : ControllerBase
 
         var comentario = new Models.Comentario
         {
-            // Usar o usuário que está comentando (parametro) — não navegar pelo post.Usuario que pode ser nulo
             UsuarioId = usuario.Id,
             PostId = dto.PostId,
             Conteudo = dto.Conteudo,
@@ -55,7 +58,7 @@ public class ComentarioController : ControllerBase
         return Ok(new
         {
             comentario.Id,
-            comentario.UsuarioId,
+            Usuario = new UsuarioDto(usuario.Id, usuario.Nome),
             comentario.Conteudo
         });
     }
@@ -71,7 +74,7 @@ public class ComentarioController : ControllerBase
             .Select(c => new
             {
                 c.Id,
-                UsuarioId = c.Usuario.Id,
+                Usuario = new UsuarioDto(c.Usuario.Id, c.Usuario.Nome),
                 c.Conteudo
             })
             .ToListAsync();
@@ -82,7 +85,7 @@ public class ComentarioController : ControllerBase
         return Ok(comentarios);
     }
 
-    // GET: /api/post/comentario/getcomentario/{id}
+    // GET: /api/post/comentario/getcomentario/{comentarioId}
     [HttpGet("getcomentario/{comentarioId}")]
     public async Task<IActionResult> GetComentarioPorId(int comentarioId)
     {
@@ -92,7 +95,7 @@ public class ComentarioController : ControllerBase
             .Select(c => new
             {
                 c.Id,
-                UsuarioId = c.Usuario.Id,
+                Usuario = new UsuarioDto(c.Usuario.Id, c.Usuario.Nome),
                 c.Conteudo
             })
             .FirstOrDefaultAsync();
@@ -121,7 +124,7 @@ public class ComentarioController : ControllerBase
 
         return Ok(new
         {
-            UsuarioId = comentario.Usuario.Id,
+            Usuario = new UsuarioDto(comentario.Usuario.Id, comentario.Usuario.Nome),
             comentario.Conteudo
         });
     }
