@@ -20,11 +20,13 @@ public class ComentarioController : ControllerBase
 
     public record ComentarioBody(
         int PostId,
-        string Conteudo
+        string Conteudo,
+        decimal ValorDeLance
     );
 
     public record UpdateComentarioBody(
-        string Conteudo
+        string Conteudo,
+        decimal ValorDeLance
     );
 
     // DTO para retornar informações do usuário com Id e Nome
@@ -49,7 +51,8 @@ public class ComentarioController : ControllerBase
             UsuarioId = usuario.Id,
             PostId = dto.PostId,
             Conteudo = dto.Conteudo,
-            DataCriacao = DateTime.UtcNow
+            DataCriacao = DateTime.UtcNow,
+            ValorDeLance = dto.ValorDeLance
         };
 
         _context.Comentarios.Add(comentario);
@@ -59,7 +62,8 @@ public class ComentarioController : ControllerBase
         {
             comentario.Id,
             Usuario = new UsuarioDto(usuario.Id, usuario.Nome),
-            comentario.Conteudo
+            comentario.Conteudo,
+            comentario.ValorDeLance
         });
     }
 
@@ -75,7 +79,8 @@ public class ComentarioController : ControllerBase
             {
                 c.Id,
                 Usuario = new UsuarioDto(c.Usuario.Id, c.Usuario.Nome),
-                c.Conteudo
+                c.Conteudo,
+                c.ValorDeLance
             })
             .ToListAsync();
 
@@ -96,7 +101,8 @@ public class ComentarioController : ControllerBase
             {
                 c.Id,
                 Usuario = new UsuarioDto(c.Usuario.Id, c.Usuario.Nome),
-                c.Conteudo
+                c.Conteudo,
+                c.ValorDeLance
             })
             .FirstOrDefaultAsync();
 
@@ -108,24 +114,40 @@ public class ComentarioController : ControllerBase
 
     // PUT: /api/post/comentario/editarcomentario/{comentarioId}
     [HttpPut("editarcomentario/{comentarioId}")]
-    public async Task<IActionResult> EditarComentario(int id, [FromBody] UpdateComentarioBody dto)
+    public async Task<IActionResult> EditarComentario(int comentarioId, [FromBody] UpdateComentarioBody dto)
     {
         var comentario = await _context.Comentarios
             .Include(c => c.Usuario)
-            .FirstOrDefaultAsync(c => c.Id == id);
+            .FirstOrDefaultAsync(c => c.Id == comentarioId);
 
         if (comentario == null)
             return NotFound("Comentário não encontrado");
 
-        if (!string.IsNullOrEmpty(dto.Conteudo))
-            comentario.Conteudo = dto.Conteudo;
+        bool atualizado = false;
 
-        await _context.SaveChangesAsync();
+        // Atualiza Conteudo se foi fornecido e é diferente
+        if (!string.IsNullOrEmpty(dto.Conteudo) && dto.Conteudo != comentario.Conteudo)
+        {
+            comentario.Conteudo = dto.Conteudo;
+            atualizado = true;
+        }
+
+        // Atualiza ValorDeLance somente se mudou
+        if (dto.ValorDeLance != comentario.ValorDeLance && dto.ValorDeLance > 0)
+        {
+            comentario.ValorDeLance = dto.ValorDeLance;
+            atualizado = true;
+        }
+
+        if (atualizado)
+            await _context.SaveChangesAsync();
 
         return Ok(new
         {
-            Usuario = new UsuarioDto(comentario.Usuario.Id, comentario.Usuario.Nome),
-            comentario.Conteudo
+            Usuario = comentario.Usuario != null ? new UsuarioDto(comentario.Usuario.Id, comentario.Usuario.Nome) : null,
+            comentario.Conteudo,
+            comentario.ValorDeLance,
+            Atualizado = atualizado
         });
     }
 
