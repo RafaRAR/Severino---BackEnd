@@ -87,6 +87,9 @@ namespace APIseverino.Data
                 entity.Property(p => p.DataCriacao)
                       .HasDefaultValueSql("NOW()");
 
+                entity.Property(p => p.Impulsionar)
+                      .HasDefaultValue(false);
+
                 entity.HasOne(p => p.Usuario)
                       .WithMany(u => u.Posts)
                       .HasForeignKey(p => p.UsuarioId)

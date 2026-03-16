@@ -107,7 +107,7 @@ public class ComentarioController : ControllerBase
             .FirstOrDefaultAsync();
 
         if (comentario == null)
-            return NotFound("Comentário não encontrado");
+            return Ok("Comentário não encontrado");
 
         return Ok(comentario);
     }

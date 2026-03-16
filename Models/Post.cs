@@ -15,7 +15,7 @@ namespace APIseverino.Models
         public string? Contato { get; set; } = string.Empty;
         public string? ImagemUrl { get; set; }  // NOVO
         public string Role { get; set; } = string.Empty;
-        public string? Impulsionar { get; set; } = string.Empty;
+        public bool Impulsionar { get; set; }
 
         [JsonIgnore]
         public Usuario Usuario { get; set; } = null!;

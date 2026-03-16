@@ -1,8 +1,9 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using APIseverino.Data;
 using APIseverino.Models;
 using Imagekit.Sdk;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace APIseverino.Controllers;
 
@@ -27,6 +28,7 @@ public class PostController : ControllerBase
         string? Cep,
         string? Contato,
         IFormFile? Imagem,
+        bool Impulsionar,
         List<int>? TagIds
     );
 
@@ -38,6 +40,7 @@ public class PostController : ControllerBase
         string? Cep,
         string? Contato,
         IFormFile? Imagem,
+        bool Impulsionar,
         List<int>? TagIds
     );
 
@@ -75,6 +78,7 @@ public class PostController : ControllerBase
             Role = dto.Role,
             DataCriacao = DateTime.UtcNow,
             ImagemUrl = imageUrl,
+            Impulsionar = dto.Impulsionar,
 
             Endereco = string.IsNullOrEmpty(dto.Endereco)
                 ? usuario.Cadastro?.Endereco
@@ -112,9 +116,11 @@ public class PostController : ControllerBase
             post.Cep,
             post.Contato,
             post.ImagemUrl,
+            post.UsuarioId,
+            post.Impulsionar,
             NomeUsuario = usuario.Nome,
-            UsuarioId = post.UsuarioId,
             Tags = post.Tags.Select(t => new { t.Id, t.Nome }).ToList()
+
         });
     }
 
@@ -135,12 +141,13 @@ public class PostController : ControllerBase
                 p.Cep,
                 p.Role,
                 p.Contato,
+                p.Impulsionar,
 
                 // imagem do post
                 p.ImagemUrl,
 
-                NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
+                NomeUsuario = p.Usuario.Nome,
                 Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
 
                 Cadastro = p.Usuario.Cadastro == null ? null : new
@@ -177,12 +184,11 @@ public class PostController : ControllerBase
                 p.Cep,
                 p.Role,
                 p.Contato,
-
-                // imagem do post
+                p.Impulsionar,
                 p.ImagemUrl,
 
-                NomeUsuario = p.Usuario.Nome,
                 UsuarioId = p.Usuario.Id,
+                NomeUsuario = p.Usuario.Nome,
                 Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
 
                 Cadastro = p.Usuario.Cadastro == null ? null : new
@@ -222,8 +228,9 @@ public class PostController : ControllerBase
                 p.Cep,
                 p.Contato,
                 p.ImagemUrl,
-                NomeUsuario = p.Usuario.Nome,
+                p.Impulsionar,
                 UsuarioId = p.Usuario.Id,
+                NomeUsuario = p.Usuario.Nome,
                 Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList()
             })
             .ToListAsync();
@@ -261,6 +268,8 @@ public class PostController : ControllerBase
 
         if (!string.IsNullOrEmpty(dto.Contato))
             post.Contato = dto.Contato;
+        
+        post.Impulsionar = dto.Impulsionar;
 
         if (dto.Imagem != null)
         {
@@ -290,8 +299,9 @@ public class PostController : ControllerBase
             post.Cep,
             post.Contato,
             post.ImagemUrl,
+            post.Impulsionar,
+            post.UsuarioId,
             NomeUsuario = post.Usuario.Nome,
-            UsuarioId = post.UsuarioId,
             Tags = post.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
             Comentarios = post.Comentarios.Select(c => new
             {
@@ -334,12 +344,11 @@ public class PostController : ControllerBase
                 p.Cep,
                 p.Role,
                 p.Contato,
-
-                // IMAGEM DO POST (permanece)
                 p.ImagemUrl,
+                p.Impulsionar,
 
+                p.UsuarioId,
                 NomeUsuario = p.Usuario.Nome,
-                UsuarioId = p.Usuario.Id,
                 Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
 
                 Cadastro = p.Usuario.Cadastro == null ? null : new
