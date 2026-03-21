@@ -58,7 +58,9 @@ public class CadastroController : ControllerBase
 
         if (dto.Imagem != null)
         {
-            imageUrl = await _imageKitService.UploadImage(dto.Imagem);
+            // UploadImage returns a tuple (url, fileId). Deconstruct to get the url string.
+            var (url, fileId) = await _imageKitService.UploadImage(dto.Imagem);
+            imageUrl = url;
         }
 
         var cadastro = new Cadastro
@@ -136,8 +138,9 @@ public class CadastroController : ControllerBase
 
         if (dto.Imagem != null)
         {
-            var imageUrl = await _imageKitService.UploadImage(dto.Imagem);
-            cadastro.ImagemUrl = imageUrl;
+            // Deconstruct tuple result to get the url and optionally fileId
+            var (url, fileId) = await _imageKitService.UploadImage(dto.Imagem);
+            cadastro.ImagemUrl = url;
         }
 
         await _context.SaveChangesAsync();

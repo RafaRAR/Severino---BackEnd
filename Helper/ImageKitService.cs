@@ -1,4 +1,4 @@
-﻿using Imagekit.Sdk;
+using Imagekit.Sdk;
 
 public class ImageKitService
 {
@@ -13,7 +13,8 @@ public class ImageKitService
         _client = new ImagekitClient(publicKey, privateKey, urlEndpoint);
     }
 
-    public async Task<string> UploadImage(IFormFile file)
+    // 🔥 Upload agora retorna URL + FileId
+    public async Task<(string url, string fileId)> UploadImage(IFormFile file)
     {
         using var stream = file.OpenReadStream();
         using var ms = new MemoryStream();
@@ -30,6 +31,12 @@ public class ImageKitService
 
         var result = await _client.UploadAsync(request);
 
-        return result.url;
+        return (result.url, result.fileId);
+    }
+
+    // 🔥 Método para deletar imagem
+    public async Task DeleteImage(string fileId)
+    {
+        await _client.DeleteFileAsync(fileId);
     }
 }

@@ -44,6 +44,11 @@ public class PostController : ControllerBase
         List<int>? TagIds
     );
 
+    public class BuscarPostBody
+    {
+        public string Termo { get; set; } = string.Empty;
+
+    }
 
     // POST: api/post/postar/2
     [HttpPost("postar/{usuarioId}")]
@@ -57,12 +62,15 @@ public class PostController : ControllerBase
             return BadRequest("Usuário não encontrado");
 
         string? imageUrl = null;
+        string? imageFileId = null;
 
         if (dto.Imagem != null)
         {
             try
             {
-                imageUrl = await _imageKitService.UploadImage(dto.Imagem);
+                var upload = await _imageKitService.UploadImage(dto.Imagem);
+                imageUrl = upload.url;
+                imageFileId = upload.fileId;
             }
             catch (Exception ex)
             {
@@ -78,19 +86,11 @@ public class PostController : ControllerBase
             Role = dto.Role,
             DataCriacao = DateTime.UtcNow,
             ImagemUrl = imageUrl,
+            ImagemFileId = imageFileId,
             Impulsionar = dto.Impulsionar,
-
-            Endereco = string.IsNullOrEmpty(dto.Endereco)
-                ? usuario.Cadastro?.Endereco
-                : dto.Endereco,
-
-            Cep = string.IsNullOrEmpty(dto.Cep)
-                ? usuario.Cadastro?.Cep
-                : dto.Cep,
-
-            Contato = string.IsNullOrEmpty(dto.Contato)
-                ? usuario.Cadastro?.Contato
-                : dto.Contato
+            Endereco = string.IsNullOrEmpty(dto.Endereco) ? usuario.Cadastro?.Endereco : dto.Endereco,
+            Cep = string.IsNullOrEmpty(dto.Cep) ? usuario.Cadastro?.Cep : dto.Cep,
+            Contato = string.IsNullOrEmpty(dto.Contato) ? usuario.Cadastro?.Contato : dto.Contato
         };
 
         _context.Posts.Add(post);
@@ -101,36 +101,26 @@ public class PostController : ControllerBase
             var tags = await _context.Tags
                 .Where(t => dto.TagIds.Contains(t.Id))
                 .ToListAsync();
-            
+
             post.Tags = tags;
             await _context.SaveChangesAsync();
         }
 
-        return Ok(new
-        {
-            post.Id,
-            post.Titulo,
-            post.Conteudo,
-            post.DataCriacao,
-            post.Endereco,
-            post.Cep,
-            post.Contato,
-            post.ImagemUrl,
-            post.UsuarioId,
-            post.Impulsionar,
-            NomeUsuario = usuario.Nome,
-            Tags = post.Tags.Select(t => new { t.Id, t.Nome }).ToList()
-
-        });
+        return Ok(post);
     }
 
-    // GET: api/post/getposts
+    // GET: api/post/getposts?page=1
     [HttpGet("getposts")]
-    public async Task<IActionResult> GetPosts()
+    public async Task<IActionResult> GetPosts(int page = 1)
     {
+        const int pageSize = 50;
+
         var posts = await _context.Posts
             .Include(p => p.Usuario)
             .Include(p => p.Tags)
+            .OrderByDescending(p => p.DataCriacao) // 🔥 importante
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(p => new
             {
                 p.Id,
@@ -142,8 +132,6 @@ public class PostController : ControllerBase
                 p.Role,
                 p.Contato,
                 p.Impulsionar,
-
-                // imagem do post
                 p.ImagemUrl,
 
                 UsuarioId = p.Usuario.Id,
@@ -268,23 +256,21 @@ public class PostController : ControllerBase
 
         if (!string.IsNullOrEmpty(dto.Contato))
             post.Contato = dto.Contato;
-        
+
         post.Impulsionar = dto.Impulsionar;
 
         if (dto.Imagem != null)
         {
-            var imageUrl = await _imageKitService.UploadImage(dto.Imagem);
-            post.ImagemUrl = imageUrl;
-        }
+            // 🔥 deleta imagem antiga
+            if (!string.IsNullOrEmpty(post.ImagemFileId))
+            {
+                await _imageKitService.DeleteImage(post.ImagemFileId);
+            }
 
-        if (dto.TagIds != null)
-        {
-            post.Tags.Clear();
-            var tags = await _context.Tags
-                .Where(t => dto.TagIds.Contains(t.Id))
-                .ToListAsync();
-            
-            post.Tags = tags;
+            var upload = await _imageKitService.UploadImage(dto.Imagem);
+
+            post.ImagemUrl = upload.url;
+            post.ImagemFileId = upload.fileId;
         }
 
         await _context.SaveChangesAsync();
@@ -316,17 +302,23 @@ public class PostController : ControllerBase
     [HttpDelete("deletarpost/{idpost}")]
     public async Task<IActionResult> DeletarPost(int idpost)
     {
-        var post = await _context.Posts.FindAsync(idpost);
+        var post = await _context.Posts
+            .FirstOrDefaultAsync(p => p.Id == idpost);
 
         if (post == null)
             return NotFound("Post não encontrado");
+
+        // 🔥 deleta imagem no ImageKit
+        if (!string.IsNullOrEmpty(post.ImagemFileId))
+        {
+            await _imageKitService.DeleteImage(post.ImagemFileId);
+        }
 
         _context.Posts.Remove(post);
         await _context.SaveChangesAsync();
 
         return Ok("Post deletado com sucesso");
     }
-
     [HttpGet("getpost/{idpost}")]
     public async Task<IActionResult> GetPostPorId(int idpost)
     {
@@ -377,5 +369,127 @@ public class PostController : ControllerBase
             return NotFound("Post não encontrado");
 
         return Ok(post);
+    }
+
+    [HttpPost("getpost/buscar")]
+    public async Task<IActionResult> Buscar(
+      [FromBody] BuscarPostBody body,
+      [FromQuery] int page = 1,
+      [FromQuery] int pageSize = 50)
+
+    {
+
+
+        // 🔥 erro se vazio
+        if (string.IsNullOrWhiteSpace(body.Termo))
+            return BadRequest(new
+            {
+                message = "O termo de busca não pode ser vazio."
+            });
+
+        // 🔥 lista de palavras inúteis (stopwords)
+        var stopWords = new[]
+        {
+    "de", "da", "do", "das", "dos",
+    "com", "sem", "para", "por",
+    "no", "na", "nos", "nas",
+    "a", "o", "e", "em"
+
+};
+
+        // 🔥 quebra + limpa + remove lixo
+        var palavras = body.Termo
+            .ToLower()
+            .Trim()
+            .Split(" ", StringSplitOptions.RemoveEmptyEntries)
+            .Where(p => !stopWords.Contains(p)) // REMOVE lixo
+            .ToArray();
+
+        // 🔥 se sobrou nada → erro
+        if (palavras.Length == 0)
+        {
+            return BadRequest(new
+            {
+                message = "Digite termos válidos para busca."
+            });
+        }
+
+        // 🔥 query
+        var query = _context.Posts
+            .Where(p =>
+                palavras.Any(palavra =>
+                    EF.Functions.ILike(p.Titulo, "%" + palavra + "%") ||
+                    EF.Functions.ILike(p.Conteudo, "%" + palavra + "%") ||
+                    p.Tags.Any(t => EF.Functions.ILike(t.Nome, "%" + palavra + "%"))
+                )
+            );
+
+        var total = await query.CountAsync();
+
+        var resultados = await query
+     .OrderByDescending(p => p.DataCriacao) // mantém
+                                            //.Skip((page - 1) * pageSize) ❌ REMOVE
+                                            //.Take(pageSize) ❌ REMOVE
+     .Select(p => new
+     {
+         p.Id,
+         p.Titulo,
+         p.Conteudo,
+         p.Role,
+         p.ImagemUrl,
+         Tags = p.Tags.Select(t => t.Nome).ToList()
+     })
+     .ToListAsync();
+        // 🔥 score na memória (sem erro)
+        var final = resultados
+            .Select(p =>
+            {
+                var tituloPalavras = (p.Titulo ?? "")
+                    .ToLower()
+                    .Split(" ", StringSplitOptions.RemoveEmptyEntries);
+
+                var conteudoPalavras = (p.Conteudo ?? "")
+                    .ToLower()
+                    .Split(" ", StringSplitOptions.RemoveEmptyEntries);
+
+                var tagsPalavras = p.Tags
+                    .Select(t => t.ToLower())
+                    .ToList();
+
+                return new
+                {
+                    p.Id,
+                    p.Titulo,
+                    p.Conteudo,
+                    p.Role,
+                    p.ImagemUrl,
+                    p.Tags,
+
+                    Score =
+                        palavras.Count(palavra =>
+                            tituloPalavras.Contains(palavra)) * 2 +
+
+                        palavras.Count(palavra =>
+                            conteudoPalavras.Contains(palavra)) +
+
+                        palavras.Count(palavra =>
+                            tagsPalavras.Contains(palavra)) * 3
+                };
+            })
+            .Where(p => p.Score > 0) // 🔥 AQUI
+            .OrderByDescending(p => p.Score)
+            .ThenBy(p => p.Role)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return Ok(new
+        {
+            page,
+            pageSize,
+            total,
+            totalPages = (int)Math.Ceiling(total / (double)pageSize),
+            data = final
+        });
     }
 }

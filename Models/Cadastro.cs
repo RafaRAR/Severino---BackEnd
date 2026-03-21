@@ -12,6 +12,7 @@ public class Cadastro
     public string Cep { get; set; } = string.Empty;
     public string Endereco { get; set; } = string.Empty;
     public string? ImagemUrl { get; set; }  // NOVO
+    public string? ImagemFileId { get; set; }
     public int UsuarioId { get; set; }
 
     [JsonIgnore]
