@@ -371,41 +371,33 @@ public class PostController : ControllerBase
         return Ok(post);
     }
 
-    [HttpPost("getpost/buscar")]
-    public async Task<IActionResult> Buscar(
-      [FromBody] BuscarPostBody body,
-      [FromQuery] int page = 1,
-      [FromQuery] int pageSize = 50)
-
+  [HttpPost("getpost/buscar")]
+  public async Task<IActionResult> Buscar(
+[FromBody] BuscarPostBody body,
+[FromQuery] int page = 1,
+[FromQuery] int pageSize = 50)
     {
-
-
-        // 🔥 erro se vazio
         if (string.IsNullOrWhiteSpace(body.Termo))
             return BadRequest(new
             {
                 message = "O termo de busca não pode ser vazio."
             });
 
-        // 🔥 lista de palavras inúteis (stopwords)
         var stopWords = new[]
         {
-    "de", "da", "do", "das", "dos",
-    "com", "sem", "para", "por",
-    "no", "na", "nos", "nas",
-    "a", "o", "e", "em"
+        "de", "da", "do", "das", "dos",
+        "com", "sem", "para", "por",
+        "no", "na", "nos", "nas",
+        "a", "o", "e", "em"
+    };
 
-};
-
-        // 🔥 quebra + limpa + remove lixo
         var palavras = body.Termo
             .ToLower()
             .Trim()
             .Split(" ", StringSplitOptions.RemoveEmptyEntries)
-            .Where(p => !stopWords.Contains(p)) // REMOVE lixo
+            .Where(p => !stopWords.Contains(p))
             .ToArray();
 
-        // 🔥 se sobrou nada → erro
         if (palavras.Length == 0)
         {
             return BadRequest(new
@@ -414,8 +406,13 @@ public class PostController : ControllerBase
             });
         }
 
-        // 🔥 query
+        // 🔥 INCLUDE COMPLETO
         var query = _context.Posts
+            .Include(p => p.Usuario)
+                .ThenInclude(u => u.Cadastro)
+            .Include(p => p.Tags)
+            .Include(p => p.Comentarios)
+                .ThenInclude(c => c.Usuario)
             .Where(p =>
                 palavras.Any(palavra =>
                     EF.Functions.ILike(p.Titulo, "%" + palavra + "%") ||
@@ -427,20 +424,42 @@ public class PostController : ControllerBase
         var total = await query.CountAsync();
 
         var resultados = await query
-     .OrderByDescending(p => p.DataCriacao) // mantém
-                                            //.Skip((page - 1) * pageSize) ❌ REMOVE
-                                            //.Take(pageSize) ❌ REMOVE
-     .Select(p => new
-     {
-         p.Id,
-         p.Titulo,
-         p.Conteudo,
-         p.Role,
-         p.ImagemUrl,
-         Tags = p.Tags.Select(t => t.Nome).ToList()
-     })
-     .ToListAsync();
-        // 🔥 score na memória (sem erro)
+            .OrderByDescending(p => p.DataCriacao)
+            .Select(p => new
+            {
+                p.Id,
+                p.Titulo,
+                p.Conteudo,
+                p.Role,
+                p.ImagemUrl,
+                p.DataCriacao,
+                p.Endereco,
+                p.Cep,
+                p.Contato,
+                p.Impulsionar,
+
+                // 🔥 USUARIO
+                p.UsuarioId,
+                NomeUsuario = p.Usuario.Nome,
+
+                // 🔥 TAGS COMPLETAS
+                Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
+
+                // 🔥 CADASTRO
+                Cadastro = p.Usuario.Cadastro == null ? null : new
+                {
+                    p.Usuario.Cadastro.Nome,
+                    p.Usuario.Cadastro.Cpf,
+                    p.Usuario.Cadastro.DataNascimento,
+                    p.Usuario.Cadastro.Endereco,
+                    p.Usuario.Cadastro.Cep,
+                    p.Usuario.Cadastro.Contato,
+                    p.Usuario.Cadastro.ImagemUrl
+                },
+
+            })
+            .ToListAsync();
+
         var final = resultados
             .Select(p =>
             {
@@ -453,7 +472,7 @@ public class PostController : ControllerBase
                     .Split(" ", StringSplitOptions.RemoveEmptyEntries);
 
                 var tagsPalavras = p.Tags
-                    .Select(t => t.ToLower())
+                    .Select(t => t.Nome.ToLower())
                     .ToList();
 
                 return new
@@ -463,7 +482,17 @@ public class PostController : ControllerBase
                     p.Conteudo,
                     p.Role,
                     p.ImagemUrl,
+                    p.DataCriacao,
+                    p.Endereco,
+                    p.Cep,
+                    p.Contato,
+                    p.Impulsionar,
                     p.Tags,
+                    p.Cadastro,
+                   
+
+                    p.UsuarioId,
+                    p.NomeUsuario,
 
                     Score =
                         palavras.Count(palavra =>
@@ -476,7 +505,7 @@ public class PostController : ControllerBase
                             tagsPalavras.Contains(palavra)) * 3
                 };
             })
-            .Where(p => p.Score > 0) // 🔥 AQUI
+            .Where(p => p.Score > 0)
             .OrderByDescending(p => p.Score)
             .ThenBy(p => p.Role)
             .Skip((page - 1) * pageSize)
