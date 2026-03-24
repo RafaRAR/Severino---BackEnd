@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using APIseverino.Data;
 using APIseverino.Models;
+using System.Text.RegularExpressions; // Adicionar para usar Regex
+using APIseverino.Helpers; // Adicionar para usar CpfHelper
 
 namespace APIseverino.Controllers;
 
@@ -54,12 +56,27 @@ public class CadastroController : ControllerBase
         if (cpfExistente)
             return BadRequest("CPF já cadastrado");
 
+        // Validação de CPF
+        if (!CpfHelper.IsValidCpf(dto.Cpf))
+            return BadRequest("CPF inválido.");
+
+        // Validação de Data de Nascimento no futuro
+        if (dto.DataNascimento > DateTime.Today)
+            return BadRequest("A data de nascimento não pode ser uma data futura.");
+
+        // Validação de idade mínima (18 anos)
+        DateTime birthDate = dto.DataNascimento;
+        int age = DateTime.Today.Year - birthDate.Year;
+        if (birthDate.Date > DateTime.Today.AddYears(-age)) age--;
+
+        if (age < 18)
+            return BadRequest("O usuário deve ter no mínimo 18 anos.");
+
         string? imageUrl = null;
 
         if (dto.Imagem != null)
         {
-            // UploadImage returns a tuple (url, fileId). Deconstruct to get the url string.
-            var (url, fileId) = await _imageKitService.UploadImage(dto.Imagem);
+            var (url, _) = await _imageKitService.UploadImage(dto.Imagem);
             imageUrl = url;
         }
 
@@ -121,17 +138,43 @@ public class CadastroController : ControllerBase
         if (!string.IsNullOrEmpty(dto.Nome))
             cadastro.Nome = dto.Nome;
 
-        if (!string.IsNullOrEmpty(dto.Cpf))
+        if (!string.IsNullOrEmpty(dto.Cpf)) {
+            // Validação de CPF ao atualizar
+            if (!CpfHelper.IsValidCpf(dto.Cpf))
+                return BadRequest("CPF inválido.");
+
+            // Validação de unicidade do CPF ao atualizar (se for diferente do atual)
+            if (cadastro.Cpf != dto.Cpf)
+            {
+                var cpfExistente = await _context.Cadastros
+                    .AnyAsync(c => c.Cpf == dto.Cpf && c.UsuarioId != usuarioid);
+                if (cpfExistente)
+                    return BadRequest("CPF já cadastrado para outro usuário.");
+            }
             cadastro.Cpf = dto.Cpf;
+        }
 
-        if (dto.DataNascimento.HasValue)
+        if (dto.DataNascimento.HasValue) {
+            // Validação de Data de Nascimento no futuro
+            if (dto.DataNascimento.Value > DateTime.Today)
+                return BadRequest("A data de nascimento não pode ser uma data futura.");
+
+            // Validação de idade mínima (18 anos) ao atualizar
+            DateTime birthDate = dto.DataNascimento.Value;
+            int age = DateTime.Today.Year - birthDate.Year;
+            if (birthDate.Date > DateTime.Today.AddYears(-age)) age--;
+
+            if (age < 18)
+                return BadRequest("O usuário deve ter no mínimo 18 anos.");
             cadastro.DataNascimento = dto.DataNascimento.Value.ToString("yyyy-MM-dd");
+        }
 
-        if (!string.IsNullOrEmpty(dto.Contato))
+        if (!string.IsNullOrEmpty(dto.Contato)) {
             cadastro.Contato = dto.Contato;
+        }
 
         if (!string.IsNullOrEmpty(dto.Cep))
-            cadastro.Cep = dto.Cep;
+            cadastro.Cep = dto.Cep; // Manter o CEP sem validação de formato, conforme solicitado
 
         if (!string.IsNullOrEmpty(dto.Endereco))
             cadastro.Endereco = dto.Endereco;
@@ -139,7 +182,7 @@ public class CadastroController : ControllerBase
         if (dto.Imagem != null)
         {
             // Deconstruct tuple result to get the url and optionally fileId
-            var (url, fileId) = await _imageKitService.UploadImage(dto.Imagem);
+            var (url, _) = await _imageKitService.UploadImage(dto.Imagem); // Manter o upload de imagem sem validação de tipo/tamanho, conforme solicitado
             cadastro.ImagemUrl = url;
         }
 

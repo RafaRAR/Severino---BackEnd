@@ -45,6 +45,17 @@ if (!string.IsNullOrEmpty(rawDb))
     {
         // Assume já é uma connection string Npgsql válida
         connStr = rawDb;
+        try
+        {
+            // Attempt to parse it to validate the format
+            _ = new NpgsqlConnectionStringBuilder(rawDb);
+            connStr = rawDb;
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"Warning: DATABASE_URL is not a valid Npgsql connection string format: {ex.Message}. Falling back to DefaultConnection.");
+            connStr = null; // Force fallback to appsettings
+        }
     }
 }
 
