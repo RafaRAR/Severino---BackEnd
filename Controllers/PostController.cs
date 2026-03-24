@@ -111,11 +111,12 @@ public class PostController : ControllerBase
 
     // GET: api/post/getposts?page=1
     [HttpGet("getposts")]
-    public async Task<IActionResult> GetPosts(int page = 1)
+    public async Task<IActionResult> GetPosts(int page = 1, string role = "Cliente")
     {
         const int pageSize = 50;
 
         var posts = await _context.Posts
+            .Where(p => p.Role == role) // Filtra por role
             .Include(p => p.Usuario)
             .Include(p => p.Tags)
             .OrderByDescending(p => p.DataCriacao) // 🔥 importante
@@ -375,7 +376,8 @@ public class PostController : ControllerBase
   public async Task<IActionResult> Buscar(
 [FromBody] BuscarPostBody body,
 [FromQuery] int page = 1,
-[FromQuery] int pageSize = 50)
+[FromQuery] int pageSize = 50,
+[FromQuery] string role = "Cliente")
     {
         if (string.IsNullOrWhiteSpace(body.Termo))
             return BadRequest(new
@@ -413,8 +415,8 @@ public class PostController : ControllerBase
             .Include(p => p.Tags)
             .Include(p => p.Comentarios)
                 .ThenInclude(c => c.Usuario)
-            .Where(p =>
-                palavras.Any(palavra =>
+            .Where(p => p.Role == role && // Apply role filter here
+                palavras.Any(palavra => // Then check for keyword matches
                     EF.Functions.ILike(p.Titulo, "%" + palavra + "%") ||
                     EF.Functions.ILike(p.Conteudo, "%" + palavra + "%") ||
                     p.Tags.Any(t => EF.Functions.ILike(t.Nome, "%" + palavra + "%"))
