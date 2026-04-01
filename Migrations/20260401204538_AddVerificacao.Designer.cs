@@ -3,6 +3,7 @@ using System;
 using APIseverino.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace APIseverino.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260401204538_AddVerificacao")]
+    partial class AddVerificacao
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -211,6 +214,16 @@ namespace APIseverino.Migrations
                         .IsRequired()
                         .HasColumnType("bytea");
 
+                    b.Property<int>("TipoUsuario")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("prestadorVerificado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
@@ -227,7 +240,7 @@ namespace APIseverino.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CadastroId")
+                    b.Property<int?>("ApprovedById")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("DataAvaliacao")
@@ -250,15 +263,14 @@ namespace APIseverino.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
-                    b.Property<int?>("UpdatedById")
+                    b.Property<int>("UsuarioId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CadastroId")
-                        .IsUnique();
+                    b.HasIndex("ApprovedById");
 
-                    b.HasIndex("UpdatedById");
+                    b.HasIndex("UsuarioId");
 
                     b.ToTable("Verificacoes");
                 });
@@ -302,16 +314,8 @@ namespace APIseverino.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("TipoUsuario")
-                        .HasColumnType("integer");
-
                     b.Property<int>("UsuarioId")
                         .HasColumnType("integer");
-
-                    b.Property<bool>("prestadorVerificado")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
 
                     b.HasKey("Id");
 
@@ -382,20 +386,20 @@ namespace APIseverino.Migrations
 
             modelBuilder.Entity("APIseverino.Models.Verificacao", b =>
                 {
-                    b.HasOne("Cadastro", "Cadastro")
-                        .WithOne("Verificacao")
-                        .HasForeignKey("APIseverino.Models.Verificacao", "CadastroId")
+                    b.HasOne("APIseverino.Models.Usuario", "ApprovedBy")
+                        .WithMany()
+                        .HasForeignKey("ApprovedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("APIseverino.Models.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("APIseverino.Models.Usuario", "UpdatedBy")
-                        .WithMany()
-                        .HasForeignKey("UpdatedById")
-                        .OnDelete(DeleteBehavior.SetNull);
+                    b.Navigation("ApprovedBy");
 
-                    b.Navigation("Cadastro");
-
-                    b.Navigation("UpdatedBy");
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("Cadastro", b =>
@@ -438,11 +442,6 @@ namespace APIseverino.Migrations
                     b.Navigation("Comentarios");
 
                     b.Navigation("Posts");
-                });
-
-            modelBuilder.Entity("Cadastro", b =>
-                {
-                    b.Navigation("Verificacao");
                 });
 #pragma warning restore 612, 618
         }
