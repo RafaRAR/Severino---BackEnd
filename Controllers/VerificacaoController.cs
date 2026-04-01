@@ -140,12 +140,11 @@ public class VerificacaoController : ControllerBase
         if (verificacao.Situacao != SituacaoVerificacao.Aguardando)
             return BadRequest("Esta solicitação já foi avaliada");
 
-        var admin = await _context.Usuarios.FindAsync(dto.AdminId);
+        var admin = await _context.Cadastros.FindAsync(dto.AdminId);
         if (admin == null)
             return BadRequest("Admin não encontrado");
 
-        var adminCadastro = await _context.Cadastros.FirstOrDefaultAsync(c => c.UsuarioId == admin.Id);
-        if (adminCadastro.TipoUsuario != TipoUsuario.Admin)
+        if (admin.TipoUsuario != TipoUsuario.Admin)
             return Unauthorized("Apenas admins podem avaliar verificações");
 
         verificacao.Situacao = dto.Situacao;
