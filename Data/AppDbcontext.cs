@@ -9,6 +9,7 @@ namespace APIseverino.Data
         {
         }
 
+        public DbSet<PostImagem> PostImagens { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Cadastro> Cadastros { get; set; }
@@ -168,6 +169,16 @@ namespace APIseverino.Data
                       .WithMany(p => p.Comentarios)
                       .HasForeignKey(c => c.PostId)
                       .IsRequired()
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PostImagem>(entity =>
+            {
+                entity.HasKey(i => i.Id);
+                entity.Property(i => i.Url).IsRequired();
+                entity.HasOne(i => i.Post)
+                      .WithMany(p => p.Imagens)
+                      .HasForeignKey(i => i.PostId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }

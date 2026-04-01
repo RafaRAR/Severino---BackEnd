@@ -1,9 +1,7 @@
 using APIseverino.Data;
 using APIseverino.Models;
-using Imagekit.Sdk;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 
 namespace APIseverino.Controllers;
 
@@ -27,7 +25,7 @@ public class PostController : ControllerBase
         string? Endereco,
         string? Cep,
         string? Contato,
-        IFormFile? Imagem,
+        List<IFormFile>? Imagens,
         bool Impulsionar,
         List<int>? TagIds
     );
@@ -39,7 +37,7 @@ public class PostController : ControllerBase
         string? Endereco,
         string? Cep,
         string? Contato,
-        IFormFile? Imagem,
+        List<IFormFile>? Imagens,
         bool Impulsionar,
         List<int>? TagIds
     );
@@ -47,7 +45,6 @@ public class PostController : ControllerBase
     public class BuscarPostBody
     {
         public string Termo { get; set; } = string.Empty;
-
     }
 
     // POST: api/post/postar/2
@@ -61,23 +58,6 @@ public class PostController : ControllerBase
         if (usuario == null)
             return BadRequest("Usuário não encontrado");
 
-        string? imageUrl = null;
-        string? imageFileId = null;
-
-        if (dto.Imagem != null)
-        {
-            try
-            {
-                var upload = await _imageKitService.UploadImage(dto.Imagem);
-                imageUrl = upload.url;
-                imageFileId = upload.fileId;
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Erro ao fazer upload da imagem: {ex.Message}");
-            }
-        }
-
         var post = new Post
         {
             UsuarioId = usuarioId,
@@ -85,8 +65,6 @@ public class PostController : ControllerBase
             Conteudo = dto.Conteudo,
             Role = dto.Role,
             DataCriacao = DateTime.UtcNow,
-            ImagemUrl = imageUrl,
-            ImagemFileId = imageFileId,
             Impulsionar = dto.Impulsionar,
             Endereco = string.IsNullOrEmpty(dto.Endereco) ? usuario.Cadastro?.Endereco : dto.Endereco,
             Cep = string.IsNullOrEmpty(dto.Cep) ? usuario.Cadastro?.Cep : dto.Cep,
@@ -95,6 +73,30 @@ public class PostController : ControllerBase
 
         _context.Posts.Add(post);
         await _context.SaveChangesAsync();
+
+        // Upload de múltiplas imagens
+        if (dto.Imagens != null && dto.Imagens.Any())
+        {
+            foreach (var imagem in dto.Imagens)
+            {
+                try
+                {
+                    var upload = await _imageKitService.UploadImage(imagem);
+                    _context.PostImagens.Add(new PostImagem
+                    {
+                        PostId = post.Id,
+                        Url = upload.url,
+                        FileId = upload.fileId
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest($"Erro ao fazer upload da imagem '{imagem.FileName}': {ex.Message}");
+                }
+            }
+
+            await _context.SaveChangesAsync();
+        }
 
         if (dto.TagIds != null && dto.TagIds.Any())
         {
@@ -111,14 +113,16 @@ public class PostController : ControllerBase
 
     // GET: api/post/getposts?page=1
     [HttpGet("getposts")]
-    public async Task<IActionResult> GetPosts(int page = 1)
+    public async Task<IActionResult> GetPosts(int page = 1, string role = "Cliente")
     {
         const int pageSize = 50;
 
         var posts = await _context.Posts
+            .Where(p => p.Role == role)
             .Include(p => p.Usuario)
             .Include(p => p.Tags)
-            .OrderByDescending(p => p.DataCriacao) // 🔥 importante
+            .Include(p => p.Imagens)
+            .OrderByDescending(p => p.DataCriacao)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(p => new
@@ -132,7 +136,8 @@ public class PostController : ControllerBase
                 p.Role,
                 p.Contato,
                 p.Impulsionar,
-                p.ImagemUrl,
+
+                Imagens = p.Imagens.Select(i => new { i.Id, i.Url }).ToList(),
 
                 UsuarioId = p.Usuario.Id,
                 NomeUsuario = p.Usuario.Nome,
@@ -154,7 +159,7 @@ public class PostController : ControllerBase
         return Ok(posts);
     }
 
-    // GET: api/post/usuario/1
+    // GET: api/post/getposts/usuario/1
     [HttpGet("getposts/usuario/{usuarioId}")]
     public async Task<IActionResult> GetPostsPorUsuario(int usuarioId)
     {
@@ -162,6 +167,7 @@ public class PostController : ControllerBase
             .Where(p => p.UsuarioId == usuarioId)
             .Include(p => p.Usuario)
             .Include(p => p.Tags)
+            .Include(p => p.Imagens)
             .Select(p => new
             {
                 p.Id,
@@ -173,7 +179,8 @@ public class PostController : ControllerBase
                 p.Role,
                 p.Contato,
                 p.Impulsionar,
-                p.ImagemUrl,
+
+                Imagens = p.Imagens.Select(i => new { i.Id, i.Url }).ToList(),
 
                 UsuarioId = p.Usuario.Id,
                 NomeUsuario = p.Usuario.Nome,
@@ -206,6 +213,7 @@ public class PostController : ControllerBase
             .Where(p => p.Tags.Any(t => t.Id == tagId))
             .Include(p => p.Usuario)
             .Include(p => p.Tags)
+            .Include(p => p.Imagens)
             .Select(p => new
             {
                 p.Id,
@@ -215,8 +223,10 @@ public class PostController : ControllerBase
                 p.Endereco,
                 p.Cep,
                 p.Contato,
-                p.ImagemUrl,
                 p.Impulsionar,
+
+                Imagens = p.Imagens.Select(i => new { i.Id, i.Url }).ToList(),
+
                 UsuarioId = p.Usuario.Id,
                 NomeUsuario = p.Usuario.Nome,
                 Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList()
@@ -229,7 +239,6 @@ public class PostController : ControllerBase
         return Ok(posts);
     }
 
-
     // PUT: api/post/editar/5
     [HttpPut("editar/{idpost}")]
     public async Task<IActionResult> EditarPost(int idpost, [FromForm] UpdatePostBody dto)
@@ -237,6 +246,7 @@ public class PostController : ControllerBase
         var post = await _context.Posts
             .Include(p => p.Usuario)
             .Include(p => p.Tags)
+            .Include(p => p.Imagens)
             .FirstOrDefaultAsync(p => p.Id == idpost);
 
         if (post == null)
@@ -259,21 +269,36 @@ public class PostController : ControllerBase
 
         post.Impulsionar = dto.Impulsionar;
 
-        if (dto.Imagem != null)
+        // Substitui todas as imagens antigas pelas novas
+        if (dto.Imagens != null && dto.Imagens.Any())
         {
-            // 🔥 deleta imagem antiga
-            if (!string.IsNullOrEmpty(post.ImagemFileId))
+            // Deleta imagens antigas no ImageKit
+            foreach (var imagemAntiga in post.Imagens)
             {
-                await _imageKitService.DeleteImage(post.ImagemFileId);
+                if (!string.IsNullOrEmpty(imagemAntiga.FileId))
+                    await _imageKitService.DeleteImage(imagemAntiga.FileId);
             }
 
-            var upload = await _imageKitService.UploadImage(dto.Imagem);
+            // Remove registros antigos do banco
+            _context.PostImagens.RemoveRange(post.Imagens);
 
-            post.ImagemUrl = upload.url;
-            post.ImagemFileId = upload.fileId;
+            // Faz upload e salva as novas
+            foreach (var imagem in dto.Imagens)
+            {
+                var upload = await _imageKitService.UploadImage(imagem);
+                _context.PostImagens.Add(new PostImagem
+                {
+                    PostId = post.Id,
+                    Url = upload.url,
+                    FileId = upload.fileId
+                });
+            }
         }
 
         await _context.SaveChangesAsync();
+
+        // Recarrega imagens para retornar atualizadas
+        await _context.Entry(post).Collection(p => p.Imagens).LoadAsync();
 
         return Ok(new
         {
@@ -284,10 +309,10 @@ public class PostController : ControllerBase
             post.Endereco,
             post.Cep,
             post.Contato,
-            post.ImagemUrl,
             post.Impulsionar,
             post.UsuarioId,
             NomeUsuario = post.Usuario.Nome,
+            Imagens = post.Imagens.Select(i => new { i.Id, i.Url }).ToList(),
             Tags = post.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
             Comentarios = post.Comentarios.Select(c => new
             {
@@ -299,19 +324,22 @@ public class PostController : ControllerBase
         });
     }
 
+    // DELETE: api/post/deletarpost/5
     [HttpDelete("deletarpost/{idpost}")]
     public async Task<IActionResult> DeletarPost(int idpost)
     {
         var post = await _context.Posts
+            .Include(p => p.Imagens)
             .FirstOrDefaultAsync(p => p.Id == idpost);
 
         if (post == null)
             return NotFound("Post não encontrado");
 
-        // 🔥 deleta imagem no ImageKit
-        if (!string.IsNullOrEmpty(post.ImagemFileId))
+        // Deleta imagens no ImageKit
+        foreach (var imagem in post.Imagens)
         {
-            await _imageKitService.DeleteImage(post.ImagemFileId);
+            if (!string.IsNullOrEmpty(imagem.FileId))
+                await _imageKitService.DeleteImage(imagem.FileId);
         }
 
         _context.Posts.Remove(post);
@@ -319,6 +347,8 @@ public class PostController : ControllerBase
 
         return Ok("Post deletado com sucesso");
     }
+
+    // GET: api/post/getpost/5
     [HttpGet("getpost/{idpost}")]
     public async Task<IActionResult> GetPostPorId(int idpost)
     {
@@ -326,6 +356,7 @@ public class PostController : ControllerBase
             .Where(p => p.Id == idpost)
             .Include(p => p.Usuario)
             .Include(p => p.Tags)
+            .Include(p => p.Imagens)
             .Select(p => new
             {
                 p.Id,
@@ -336,12 +367,12 @@ public class PostController : ControllerBase
                 p.Cep,
                 p.Role,
                 p.Contato,
-                p.ImagemUrl,
                 p.Impulsionar,
 
                 p.UsuarioId,
                 NomeUsuario = p.Usuario.Nome,
                 Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
+                Imagens = p.Imagens.Select(i => new { i.Id, i.Url }).ToList(),
 
                 Cadastro = p.Usuario.Cadastro == null ? null : new
                 {
@@ -351,8 +382,6 @@ public class PostController : ControllerBase
                     p.Usuario.Cadastro.Endereco,
                     p.Usuario.Cadastro.Cep,
                     p.Usuario.Cadastro.Contato,
-
-                    // IMAGEM DO CADASTRO (foto do perfil)
                     p.Usuario.Cadastro.ImagemUrl
                 },
                 Comentarios = p.Comentarios.Select(c => new
@@ -371,25 +400,24 @@ public class PostController : ControllerBase
         return Ok(post);
     }
 
-  [HttpPost("getpost/buscar")]
-  public async Task<IActionResult> Buscar(
-[FromBody] BuscarPostBody body,
-[FromQuery] int page = 1,
-[FromQuery] int pageSize = 50)
+    // POST: api/post/getpost/buscar
+    [HttpPost("getpost/buscar")]
+    public async Task<IActionResult> Buscar(
+        [FromBody] BuscarPostBody body,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string role = "Cliente")
     {
         if (string.IsNullOrWhiteSpace(body.Termo))
-            return BadRequest(new
-            {
-                message = "O termo de busca não pode ser vazio."
-            });
+            return BadRequest(new { message = "O termo de busca não pode ser vazio." });
 
         var stopWords = new[]
         {
-        "de", "da", "do", "das", "dos",
-        "com", "sem", "para", "por",
-        "no", "na", "nos", "nas",
-        "a", "o", "e", "em"
-    };
+            "de", "da", "do", "das", "dos",
+            "com", "sem", "para", "por",
+            "no", "na", "nos", "nas",
+            "a", "o", "e", "em"
+        };
 
         var palavras = body.Termo
             .ToLower()
@@ -399,21 +427,16 @@ public class PostController : ControllerBase
             .ToArray();
 
         if (palavras.Length == 0)
-        {
-            return BadRequest(new
-            {
-                message = "Digite termos válidos para busca."
-            });
-        }
+            return BadRequest(new { message = "Digite termos válidos para busca." });
 
-        // 🔥 INCLUDE COMPLETO
         var query = _context.Posts
             .Include(p => p.Usuario)
                 .ThenInclude(u => u.Cadastro)
             .Include(p => p.Tags)
+            .Include(p => p.Imagens)
             .Include(p => p.Comentarios)
                 .ThenInclude(c => c.Usuario)
-            .Where(p =>
+            .Where(p => p.Role == role &&
                 palavras.Any(palavra =>
                     EF.Functions.ILike(p.Titulo, "%" + palavra + "%") ||
                     EF.Functions.ILike(p.Conteudo, "%" + palavra + "%") ||
@@ -431,21 +454,19 @@ public class PostController : ControllerBase
                 p.Titulo,
                 p.Conteudo,
                 p.Role,
-                p.ImagemUrl,
                 p.DataCriacao,
                 p.Endereco,
                 p.Cep,
                 p.Contato,
                 p.Impulsionar,
 
-                // 🔥 USUARIO
+                Imagens = p.Imagens.Select(i => new { i.Id, i.Url }).ToList(),
+
                 p.UsuarioId,
                 NomeUsuario = p.Usuario.Nome,
 
-                // 🔥 TAGS COMPLETAS
                 Tags = p.Tags.Select(t => new { t.Id, t.Nome }).ToList(),
 
-                // 🔥 CADASTRO
                 Cadastro = p.Usuario.Cadastro == null ? null : new
                 {
                     p.Usuario.Cadastro.Nome,
@@ -456,7 +477,6 @@ public class PostController : ControllerBase
                     p.Usuario.Cadastro.Contato,
                     p.Usuario.Cadastro.ImagemUrl
                 },
-
             })
             .ToListAsync();
 
@@ -481,28 +501,21 @@ public class PostController : ControllerBase
                     p.Titulo,
                     p.Conteudo,
                     p.Role,
-                    p.ImagemUrl,
                     p.DataCriacao,
                     p.Endereco,
                     p.Cep,
                     p.Contato,
                     p.Impulsionar,
+                    p.Imagens,
                     p.Tags,
                     p.Cadastro,
-                   
-
                     p.UsuarioId,
                     p.NomeUsuario,
 
                     Score =
-                        palavras.Count(palavra =>
-                            tituloPalavras.Contains(palavra)) * 2 +
-
-                        palavras.Count(palavra =>
-                            conteudoPalavras.Contains(palavra)) +
-
-                        palavras.Count(palavra =>
-                            tagsPalavras.Contains(palavra)) * 3
+                        palavras.Count(palavra => tituloPalavras.Contains(palavra)) * 2 +
+                        palavras.Count(palavra => conteudoPalavras.Contains(palavra)) +
+                        palavras.Count(palavra => tagsPalavras.Contains(palavra)) * 3
                 };
             })
             .Where(p => p.Score > 0)
@@ -520,5 +533,24 @@ public class PostController : ControllerBase
             totalPages = (int)Math.Ceiling(total / (double)pageSize),
             data = final
         });
+    }
+
+    // DELETE: api/post/deletarimagem/3
+    // Remove uma imagem específica de um post
+    [HttpDelete("deletarimagem/{imagemId}")]
+    public async Task<IActionResult> DeletarImagem(int imagemId)
+    {
+        var imagem = await _context.PostImagens.FindAsync(imagemId);
+
+        if (imagem == null)
+            return NotFound("Imagem não encontrada");
+
+        if (!string.IsNullOrEmpty(imagem.FileId))
+            await _imageKitService.DeleteImage(imagem.FileId);
+
+        _context.PostImagens.Remove(imagem);
+        await _context.SaveChangesAsync();
+
+        return Ok("Imagem deletada com sucesso");
     }
 }
