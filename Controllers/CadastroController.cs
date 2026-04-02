@@ -95,6 +95,25 @@ public class CadastroController : ControllerBase
         _context.Cadastros.Add(cadastro);
         await _context.SaveChangesAsync();
 
+        cadastro = await _context.Cadastros
+            .Include(c => c.Usuario)
+            .Where(c => c.Id == cadastro.Id)
+            .Select(c => new Cadastro
+            {
+                Id = c.Id,
+                UsuarioId = c.UsuarioId,
+                Nome = c.Nome,
+                ImagemUrl = c.ImagemUrl,
+                Cpf = c.Cpf,
+                DataNascimento = c.DataNascimento,
+                Contato = c.Contato,
+                Cep = c.Cep,
+                Endereco = c.Endereco,
+                TipoUsuario = c.TipoUsuario,
+                prestadorVerificado = c.prestadorVerificado
+            })
+            .FirstOrDefaultAsync();
+
         return Ok(cadastro);
     }
 
@@ -115,7 +134,9 @@ public class CadastroController : ControllerBase
                 c.DataNascimento,
                 c.Contato,
                 c.Cep,
-                c.Endereco
+                c.Endereco,
+                c.TipoUsuario,
+                c.prestadorVerificado
             })
             .FirstOrDefaultAsync();
 
@@ -138,7 +159,8 @@ public class CadastroController : ControllerBase
         if (!string.IsNullOrEmpty(dto.Nome))
             cadastro.Nome = dto.Nome;
 
-        if (!string.IsNullOrEmpty(dto.Cpf)) {
+        if (!string.IsNullOrEmpty(dto.Cpf))
+        {
             // Validação de CPF ao atualizar
             if (!CpfHelper.IsValidCpf(dto.Cpf))
                 return BadRequest("CPF inválido.");
@@ -154,7 +176,8 @@ public class CadastroController : ControllerBase
             cadastro.Cpf = dto.Cpf;
         }
 
-        if (dto.DataNascimento.HasValue) {
+        if (dto.DataNascimento.HasValue)
+        {
             // Validação de Data de Nascimento no futuro
             if (dto.DataNascimento.Value > DateTime.Today)
                 return BadRequest("A data de nascimento não pode ser uma data futura.");
@@ -169,24 +192,43 @@ public class CadastroController : ControllerBase
             cadastro.DataNascimento = dto.DataNascimento.Value.ToString("yyyy-MM-dd");
         }
 
-        if (!string.IsNullOrEmpty(dto.Contato)) {
+        if (!string.IsNullOrEmpty(dto.Contato))
+        {
             cadastro.Contato = dto.Contato;
         }
 
         if (!string.IsNullOrEmpty(dto.Cep))
-            cadastro.Cep = dto.Cep; // Manter o CEP sem validação de formato, conforme solicitado
+            cadastro.Cep = dto.Cep;
 
         if (!string.IsNullOrEmpty(dto.Endereco))
             cadastro.Endereco = dto.Endereco;
 
         if (dto.Imagem != null)
         {
-            // Deconstruct tuple result to get the url and optionally fileId
-            var (url, _) = await _imageKitService.UploadImage(dto.Imagem); // Manter o upload de imagem sem validação de tipo/tamanho, conforme solicitado
+            var (url, _) = await _imageKitService.UploadImage(dto.Imagem);
             cadastro.ImagemUrl = url;
         }
 
         await _context.SaveChangesAsync();
+
+        cadastro = await _context.Cadastros
+            .Include(c => c.Usuario)
+            .Where(c => c.Id == cadastro.Id)
+            .Select(c => new Cadastro
+            {
+                Id = c.Id,
+                UsuarioId = c.UsuarioId,
+                Nome = c.Nome,
+                ImagemUrl = c.ImagemUrl,
+                Cpf = c.Cpf,
+                DataNascimento = c.DataNascimento,
+                Contato = c.Contato,
+                Cep = c.Cep,
+                Endereco = c.Endereco,
+                TipoUsuario = c.TipoUsuario,
+                prestadorVerificado = c.prestadorVerificado
+            })
+            .FirstOrDefaultAsync();
 
         return Ok(cadastro);
     }
