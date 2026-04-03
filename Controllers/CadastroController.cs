@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using APIseverino.Data;
 using APIseverino.Models;
 using System.Text.RegularExpressions; // Adicionar para usar Regex
-using APIseverino.Helpers; // Adicionar para usar CpfHelper
+using APIseverino.Helpers;
+using APIseverino.Models.Enums; // Adicionar para usar CpfHelper
 
 namespace APIseverino.Controllers;
 
@@ -28,7 +29,8 @@ public class CadastroController : ControllerBase
         DateTime DataNascimento,
         string Contato,
         string Cep,
-        string Endereco
+        string Endereco,
+        TipoUsuario TipoUsuario
     );
 
     public record UpdateCadastroBody(
@@ -38,7 +40,8 @@ public class CadastroController : ControllerBase
         DateTime? DataNascimento,
         string? Contato,
         string? Cep,
-        string? Endereco
+        string? Endereco,
+        TipoUsuario TipoUsuario
     );
 
     // POST: api/cadastro/cadastrar/2
@@ -89,7 +92,8 @@ public class CadastroController : ControllerBase
             DataNascimento = dto.DataNascimento.ToString("yyyy-MM-dd"),
             Contato = dto.Contato,
             Cep = dto.Cep,
-            Endereco = dto.Endereco
+            Endereco = dto.Endereco,
+            TipoUsuario = dto.TipoUsuario
         };
 
         _context.Cadastros.Add(cadastro);
@@ -208,6 +212,9 @@ public class CadastroController : ControllerBase
             var (url, _) = await _imageKitService.UploadImage(dto.Imagem);
             cadastro.ImagemUrl = url;
         }
+
+        if (dto.TipoUsuario != cadastro.TipoUsuario)
+            cadastro.TipoUsuario = dto.TipoUsuario;
 
         await _context.SaveChangesAsync();
 
