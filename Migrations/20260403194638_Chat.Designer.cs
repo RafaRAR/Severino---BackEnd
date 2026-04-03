@@ -3,6 +3,7 @@ using System;
 using APIseverino.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace APIseverino.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260403194638_Chat")]
+    partial class Chat
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -126,42 +129,6 @@ namespace APIseverino.Migrations
                     b.HasIndex("UsuarioId");
 
                     b.ToTable("Comentarios");
-                });
-
-            modelBuilder.Entity("APIseverino.Models.Lance", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("DataCriacao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<int>("IdPost")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("IdPrestadorResponsavel")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsAccepted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal>("ValorDeLance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IdPost");
-
-                    b.HasIndex("IdPrestadorResponsavel");
-
-                    b.ToTable("Lances");
                 });
 
             modelBuilder.Entity("APIseverino.Models.Post", b =>
@@ -512,25 +479,6 @@ namespace APIseverino.Migrations
                     b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("APIseverino.Models.Lance", b =>
-                {
-                    b.HasOne("APIseverino.Models.Post", "Post")
-                        .WithMany("Lances")
-                        .HasForeignKey("IdPost")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("APIseverino.Models.Usuario", "Prestador")
-                        .WithMany()
-                        .HasForeignKey("IdPrestadorResponsavel")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Post");
-
-                    b.Navigation("Prestador");
-                });
-
             modelBuilder.Entity("APIseverino.Models.Post", b =>
                 {
                     b.HasOne("APIseverino.Models.Usuario", "Usuario")
@@ -609,8 +557,6 @@ namespace APIseverino.Migrations
                     b.Navigation("Comentarios");
 
                     b.Navigation("Imagens");
-
-                    b.Navigation("Lances");
                 });
 
             modelBuilder.Entity("APIseverino.Models.Usuario", b =>

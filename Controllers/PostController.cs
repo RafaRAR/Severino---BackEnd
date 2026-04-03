@@ -1,5 +1,6 @@
 using APIseverino.Data;
 using APIseverino.Models;
+using APIseverino.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,7 +48,26 @@ public class PostController : ControllerBase
         public string Termo { get; set; } = string.Empty;
     }
 
-    // POST: api/post/postar/2
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Método auxiliar: verifica e marca posts expirados antes de retorná-los.
+    // ─────────────────────────────────────────────────────────────────────────────
+    private async Task MarcarPostsExpirados(IQueryable<Post> query)
+    {
+        var agora = DateTime.UtcNow;
+        var expirados = await query
+            .Where(p => p.Status == StatusPost.Aberto && p.DataExpiracao < agora)
+            .ToListAsync();
+
+        if (expirados.Count > 0)
+        {
+            foreach (var p in expirados)
+                p.Status = StatusPost.Expirado;
+
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    // POST: api/post/postar/{usuarioId}
     [HttpPost("postar/{usuarioId}")]
     public async Task<IActionResult> Postar(int usuarioId, [FromForm] PostBody dto)
     {
@@ -65,6 +85,8 @@ public class PostController : ControllerBase
             Conteudo = dto.Conteudo,
             Role = dto.Role,
             DataCriacao = DateTime.UtcNow,
+            DataExpiracao = DateTime.UtcNow.AddDays(30), // 30 dias a partir da criação
+            Status = StatusPost.Aberto,
             Impulsionar = dto.Impulsionar,
             Endereco = string.IsNullOrEmpty(dto.Endereco) ? usuario.Cadastro?.Endereco : dto.Endereco,
             Cep = string.IsNullOrEmpty(dto.Cep) ? usuario.Cadastro?.Cep : dto.Cep,
@@ -111,11 +133,14 @@ public class PostController : ControllerBase
         return Ok(post);
     }
 
-    // GET: api/post/getposts?page=1
+    // GET: api/post/getposts?page=1&role=Cliente
     [HttpGet("getposts")]
     public async Task<IActionResult> GetPosts(int page = 1, string role = "Cliente")
     {
         const int pageSize = 50;
+
+        // Atualiza expirados antes de retornar
+        await MarcarPostsExpirados(_context.Posts.Where(p => p.Role == role));
 
         var posts = await _context.Posts
             .Where(p => p.Role == role)
@@ -131,6 +156,8 @@ public class PostController : ControllerBase
                 p.Titulo,
                 p.Conteudo,
                 p.DataCriacao,
+                p.DataExpiracao,
+                p.Status,
                 p.Endereco,
                 p.Cep,
                 p.Role,
@@ -159,10 +186,12 @@ public class PostController : ControllerBase
         return Ok(posts);
     }
 
-    // GET: api/post/getposts/usuario/1
+    // GET: api/post/getposts/usuario/{usuarioId}
     [HttpGet("getposts/usuario/{usuarioId}")]
     public async Task<IActionResult> GetPostsPorUsuario(int usuarioId)
     {
+        await MarcarPostsExpirados(_context.Posts.Where(p => p.UsuarioId == usuarioId));
+
         var posts = await _context.Posts
             .Where(p => p.UsuarioId == usuarioId)
             .Include(p => p.Usuario)
@@ -174,6 +203,8 @@ public class PostController : ControllerBase
                 p.Titulo,
                 p.Conteudo,
                 p.DataCriacao,
+                p.DataExpiracao,
+                p.Status,
                 p.Endereco,
                 p.Cep,
                 p.Role,
@@ -205,10 +236,12 @@ public class PostController : ControllerBase
         return Ok(posts);
     }
 
-    // GET: api/post/getposts/tag/1
+    // GET: api/post/getposts/tag/{tagId}
     [HttpGet("getposts/tag/{tagId}")]
     public async Task<IActionResult> GetPostsPorTag(int tagId)
     {
+        await MarcarPostsExpirados(_context.Posts.Where(p => p.Tags.Any(t => t.Id == tagId)));
+
         var posts = await _context.Posts
             .Where(p => p.Tags.Any(t => t.Id == tagId))
             .Include(p => p.Usuario)
@@ -220,6 +253,8 @@ public class PostController : ControllerBase
                 p.Titulo,
                 p.Conteudo,
                 p.DataCriacao,
+                p.DataExpiracao,
+                p.Status,
                 p.Endereco,
                 p.Cep,
                 p.Contato,
@@ -239,7 +274,7 @@ public class PostController : ControllerBase
         return Ok(posts);
     }
 
-    // PUT: api/post/editar/5
+    // PUT: api/post/editar/{idpost}
     [HttpPut("editar/{idpost}")]
     public async Task<IActionResult> EditarPost(int idpost, [FromForm] UpdatePostBody dto)
     {
@@ -272,17 +307,14 @@ public class PostController : ControllerBase
         // Substitui todas as imagens antigas pelas novas
         if (dto.Imagens != null && dto.Imagens.Any())
         {
-            // Deleta imagens antigas no ImageKit
             foreach (var imagemAntiga in post.Imagens)
             {
                 if (!string.IsNullOrEmpty(imagemAntiga.FileId))
                     await _imageKitService.DeleteImage(imagemAntiga.FileId);
             }
 
-            // Remove registros antigos do banco
             _context.PostImagens.RemoveRange(post.Imagens);
 
-            // Faz upload e salva as novas
             foreach (var imagem in dto.Imagens)
             {
                 var upload = await _imageKitService.UploadImage(imagem);
@@ -296,8 +328,6 @@ public class PostController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
-
-        // Recarrega imagens para retornar atualizadas
         await _context.Entry(post).Collection(p => p.Imagens).LoadAsync();
 
         return Ok(new
@@ -306,6 +336,8 @@ public class PostController : ControllerBase
             post.Titulo,
             post.Conteudo,
             post.DataCriacao,
+            post.DataExpiracao,
+            post.Status,
             post.Endereco,
             post.Cep,
             post.Contato,
@@ -324,7 +356,7 @@ public class PostController : ControllerBase
         });
     }
 
-    // DELETE: api/post/deletarpost/5
+    // DELETE: api/post/deletarpost/{idpost}
     [HttpDelete("deletarpost/{idpost}")]
     public async Task<IActionResult> DeletarPost(int idpost)
     {
@@ -335,7 +367,6 @@ public class PostController : ControllerBase
         if (post == null)
             return NotFound("Post não encontrado");
 
-        // Deleta imagens no ImageKit
         foreach (var imagem in post.Imagens)
         {
             if (!string.IsNullOrEmpty(imagem.FileId))
@@ -348,10 +379,13 @@ public class PostController : ControllerBase
         return Ok("Post deletado com sucesso");
     }
 
-    // GET: api/post/getpost/5
+    // GET: api/post/getpost/{idpost}
     [HttpGet("getpost/{idpost}")]
     public async Task<IActionResult> GetPostPorId(int idpost)
     {
+        // Verifica expiração antes de retornar
+        await MarcarPostsExpirados(_context.Posts.Where(p => p.Id == idpost));
+
         var post = await _context.Posts
             .Where(p => p.Id == idpost)
             .Include(p => p.Usuario)
@@ -363,11 +397,14 @@ public class PostController : ControllerBase
                 p.Titulo,
                 p.Conteudo,
                 p.DataCriacao,
+                p.DataExpiracao,
+                p.Status,
                 p.Endereco,
                 p.Cep,
                 p.Role,
                 p.Contato,
                 p.Impulsionar,
+                p.PrestadorEmNegociacaoId,
 
                 p.UsuarioId,
                 NomeUsuario = p.Usuario.Nome,
@@ -429,6 +466,8 @@ public class PostController : ControllerBase
         if (palavras.Length == 0)
             return BadRequest(new { message = "Digite termos válidos para busca." });
 
+        await MarcarPostsExpirados(_context.Posts.Where(p => p.Role == role));
+
         var query = _context.Posts
             .Include(p => p.Usuario)
                 .ThenInclude(u => u.Cadastro)
@@ -455,6 +494,8 @@ public class PostController : ControllerBase
                 p.Conteudo,
                 p.Role,
                 p.DataCriacao,
+                p.DataExpiracao,
+                p.Status,
                 p.Endereco,
                 p.Cep,
                 p.Contato,
@@ -502,6 +543,8 @@ public class PostController : ControllerBase
                     p.Conteudo,
                     p.Role,
                     p.DataCriacao,
+                    p.DataExpiracao,
+                    p.Status,
                     p.Endereco,
                     p.Cep,
                     p.Contato,
@@ -535,8 +578,7 @@ public class PostController : ControllerBase
         });
     }
 
-    // DELETE: api/post/deletarimagem/3
-    // Remove uma imagem específica de um post
+    // DELETE: api/post/deletarimagem/{imagemId}
     [HttpDelete("deletarimagem/{imagemId}")]
     public async Task<IActionResult> DeletarImagem(int imagemId)
     {
