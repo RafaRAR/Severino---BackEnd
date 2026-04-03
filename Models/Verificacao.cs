@@ -7,7 +7,7 @@ namespace APIseverino.Models
     {
         public int Id { get; set; }
 
-        public int CadastroId { get; set; }
+        public int UsuarioId { get; set; }
 
         [JsonIgnore]
         public Cadastro Cadastro { get; set; } = null!;

@@ -33,13 +33,13 @@ public class VerificacaoController : ControllerBase
             return BadRequest("Imagem é obrigatória");
 
         var solicitacaoPendente = await _context.Verificacoes
-            .AnyAsync(v => v.CadastroId == cadastroId && v.Situacao == SituacaoVerificacao.Aguardando);
+            .AnyAsync(v => v.UsuarioId == cadastroId && v.Situacao == SituacaoVerificacao.Aguardando);
 
         if (solicitacaoPendente)
             return BadRequest("Já existe uma solicitação de verificação pendente para este cadastro");
 
         var solicitacaoAprovada = await _context.Verificacoes
-            .AnyAsync(v => v.CadastroId == cadastroId && v.Situacao == SituacaoVerificacao.Aprovado && v.Cadastro.prestadorVerificado == true);
+            .AnyAsync(v => v.UsuarioId == cadastroId && v.Situacao == SituacaoVerificacao.Aprovado && v.Cadastro.prestadorVerificado == true);
 
         if (solicitacaoAprovada)
             return BadRequest("Este cadastro já foi verificado e aprovado");
@@ -58,7 +58,7 @@ public class VerificacaoController : ControllerBase
 
         var verificacao = new Verificacao
         {
-            CadastroId = cadastroId,
+            UsuarioId = cadastroId,
             ImagemUrl = url,
             ImagemFileId = fileId,
             Situacao = SituacaoVerificacao.Aguardando,
@@ -76,12 +76,12 @@ public class VerificacaoController : ControllerBase
     public async Task<IActionResult> GetEstadoVerificacao(int cadastroId)
     {
         var verificacao = await _context.Verificacoes
-            .Where(v => v.CadastroId == cadastroId)
+            .Where(v => v.UsuarioId == cadastroId)
             .OrderByDescending(v => v.DataSolicitacao)
             .Select(v => new
             {
                 v.Id,
-                v.CadastroId,
+                v.UsuarioId,
                 v.ImagemUrl,
                 v.Situacao,
                 v.DataSolicitacao,
@@ -109,7 +109,7 @@ public class VerificacaoController : ControllerBase
             .Select(v => new
             {
                 v.Id,
-                v.CadastroId,
+                v.UsuarioId,
                 NomeCadastro = v.Cadastro.Nome,
                 v.ImagemUrl,
                 v.Situacao,
@@ -159,7 +159,7 @@ public class VerificacaoController : ControllerBase
         return Ok(new
         {
             verificacao.Id,
-            verificacao.CadastroId,
+            verificacao.UsuarioId,
             verificacao.Situacao,
             verificacao.DataAvaliacao,
             UpdatedBy = new { admin.Id, admin.Nome }

@@ -233,7 +233,7 @@ namespace APIseverino.Data
 
                 entity.HasOne(v => v.Cadastro)
                       .WithOne(c => c.Verificacao)
-                      .HasForeignKey<Verificacao>(v => v.CadastroId)
+                      .HasForeignKey<Verificacao>(v => v.UsuarioId)
                       .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(v => v.UpdatedBy)
