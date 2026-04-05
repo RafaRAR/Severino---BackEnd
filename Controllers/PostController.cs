@@ -178,7 +178,8 @@ public class PostController : ControllerBase
                     p.Usuario.Cadastro.Endereco,
                     p.Usuario.Cadastro.Cep,
                     p.Usuario.Cadastro.Contato,
-                    p.Usuario.Cadastro.ImagemUrl
+                    p.Usuario.Cadastro.ImagemUrl,
+                    p.Usuario.Cadastro.prestadorVerificado
                 }
             })
             .ToListAsync();
@@ -225,7 +226,8 @@ public class PostController : ControllerBase
                     p.Usuario.Cadastro.Endereco,
                     p.Usuario.Cadastro.Cep,
                     p.Usuario.Cadastro.Contato,
-                    p.Usuario.Cadastro.ImagemUrl
+                    p.Usuario.Cadastro.ImagemUrl,
+                    p.Usuario.Cadastro.prestadorVerificado
                 }
             })
             .ToListAsync();
@@ -419,7 +421,8 @@ public class PostController : ControllerBase
                     p.Usuario.Cadastro.Endereco,
                     p.Usuario.Cadastro.Cep,
                     p.Usuario.Cadastro.Contato,
-                    p.Usuario.Cadastro.ImagemUrl
+                    p.Usuario.Cadastro.ImagemUrl,
+                    p.Usuario.Cadastro.prestadorVerificado
                 },
                 Comentarios = p.Comentarios.Select(c => new
                 {
@@ -516,7 +519,8 @@ public class PostController : ControllerBase
                     p.Usuario.Cadastro.Endereco,
                     p.Usuario.Cadastro.Cep,
                     p.Usuario.Cadastro.Contato,
-                    p.Usuario.Cadastro.ImagemUrl
+                    p.Usuario.Cadastro.ImagemUrl,
+                    p.Usuario.Cadastro.prestadorVerificado
                 },
             })
             .ToListAsync();

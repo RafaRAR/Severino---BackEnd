@@ -1,13 +1,16 @@
 using APIseverino.Data;
 using APIseverino.Models;
 using APIseverino.Models.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace APIseverino.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize] // todas as rotas exigem Bearer token
 public class VerificacaoController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -19,13 +22,33 @@ public class VerificacaoController : ControllerBase
         _imageKitService = imageKitService;
     }
 
-    public record AvaliarBody(int AdminId, SituacaoVerificacao Situacao);
+    public record AvaliarBody(SituacaoVerificacao Situacao);
 
-    // POST: api/verificacao/enviarverificacao/{cadastroId}
-    [HttpPost("enviarverificacao/{cadastroId}")]
-    public async Task<IActionResult> EnviarVerificacao(int cadastroId, IFormFile imagem)
+    // Helper: lê o usuarioId do token JWT
+    private int? GetUsuarioIdFromToken()
     {
-        var cadastro = await _context.Cadastros.FindAsync(cadastroId);
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return int.TryParse(claim, out var id) ? id : null;
+    }
+
+    // Helper: verifica se o usuário autenticado é Admin
+    private async Task<bool> IsAdmin(int usuarioId)
+    {
+        var cadastro = await _context.Cadastros
+            .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
+        return cadastro?.TipoUsuario == TipoUsuario.Admin;
+    }
+
+    // POST: api/verificacao/enviarverificacao/{usuarioId}
+    [HttpPost("enviarverificacao/{usuarioId}")]
+    public async Task<IActionResult> EnviarVerificacao(int usuarioId, IFormFile imagem)
+    {
+        var tokenUserId = GetUsuarioIdFromToken();
+        if (tokenUserId == null || tokenUserId != usuarioId)
+            return Unauthorized("Token inválido ou não pertence a este usuário.");
+
+        var cadastro = await _context.Cadastros
+            .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
         if (cadastro == null)
             return BadRequest("Cadastro não encontrado");
 
@@ -33,16 +56,18 @@ public class VerificacaoController : ControllerBase
             return BadRequest("Imagem é obrigatória");
 
         var solicitacaoPendente = await _context.Verificacoes
-            .AnyAsync(v => v.UsuarioId == cadastroId && v.Situacao == SituacaoVerificacao.Aguardando);
+            .AnyAsync(v => v.UsuarioId == usuarioId && v.Situacao == SituacaoVerificacao.Aguardando);
 
         if (solicitacaoPendente)
-            return BadRequest("Já existe uma solicitação de verificação pendente para este cadastro");
+            return BadRequest("Já existe uma solicitação de verificação pendente para este usuário.");
 
         var solicitacaoAprovada = await _context.Verificacoes
-            .AnyAsync(v => v.UsuarioId == cadastroId && v.Situacao == SituacaoVerificacao.Aprovado && v.Cadastro.prestadorVerificado == true);
+            .AnyAsync(v => v.UsuarioId == usuarioId
+                        && v.Situacao == SituacaoVerificacao.Aprovado
+                        && v.Cadastro.prestadorVerificado == true);
 
         if (solicitacaoAprovada)
-            return BadRequest("Este cadastro já foi verificado e aprovado");
+            return BadRequest("Este usuário já foi verificado e aprovado.");
 
         string url, fileId;
         try
@@ -58,7 +83,7 @@ public class VerificacaoController : ControllerBase
 
         var verificacao = new Verificacao
         {
-            UsuarioId = cadastroId,
+            UsuarioId = usuarioId,
             ImagemUrl = url,
             ImagemFileId = fileId,
             Situacao = SituacaoVerificacao.Aguardando,
@@ -71,12 +96,19 @@ public class VerificacaoController : ControllerBase
         return Ok();
     }
 
-    // GET: api/verificacao/getestadoverificacao/{cadastroId}
-    [HttpGet("getestadoverificacao/{cadastroId}")]
-    public async Task<IActionResult> GetEstadoVerificacao(int cadastroId)
+    // GET: api/verificacao/getestadoverificacao/{usuarioId}
+    [HttpGet("getestadoverificacao/{usuarioId}")]
+    public async Task<IActionResult> GetEstadoVerificacao(int usuarioId)
     {
+        var tokenUserId = GetUsuarioIdFromToken();
+        if (tokenUserId == null)
+            return Unauthorized("Token inválido.");
+
+        if (tokenUserId != usuarioId && !await IsAdmin(tokenUserId.Value))
+            return Forbid();
+
         var verificacao = await _context.Verificacoes
-            .Where(v => v.UsuarioId == cadastroId)
+            .Where(v => v.UsuarioId == usuarioId)
             .OrderByDescending(v => v.DataSolicitacao)
             .Select(v => new
             {
@@ -95,15 +127,22 @@ public class VerificacaoController : ControllerBase
             .FirstOrDefaultAsync();
 
         if (verificacao == null)
-            return NotFound("Nenhuma solicitação de verificação encontrada para este cadastro");
+            return NotFound("Nenhuma solicitação de verificação encontrada para este usuário.");
 
         return Ok(verificacao);
     }
 
-    // GET: api/verificacao/getestadoverificacaogeral
+    // GET: api/verificacao/getestadoverificacaogeral  (apenas admins)
     [HttpGet("getestadoverificacaogeral")]
     public async Task<IActionResult> GetEstadoVerificacaoGeral()
     {
+        var tokenUserId = GetUsuarioIdFromToken();
+        if (tokenUserId == null)
+            return Unauthorized("Token inválido.");
+
+        if (!await IsAdmin(tokenUserId.Value))
+            return Forbid();
+
         var verificacoes = await _context.Verificacoes
             .OrderByDescending(v => v.DataSolicitacao)
             .Select(v => new
@@ -126,29 +165,30 @@ public class VerificacaoController : ControllerBase
         return Ok(verificacoes);
     }
 
-    // PUT: api/verificacao/avaliar/{verificacaoId}
+    // PUT: api/verificacao/avaliar/{verificacaoId}  (apenas admins)
+    // AdminId vem do próprio token — não precisa mais passar no body
     [HttpPut("avaliar/{verificacaoId}")]
     public async Task<IActionResult> Avaliar(int verificacaoId, [FromBody] AvaliarBody dto)
     {
+        var tokenUserId = GetUsuarioIdFromToken();
+        if (tokenUserId == null)
+            return Unauthorized("Token inválido.");
+
+        if (!await IsAdmin(tokenUserId.Value))
+            return Forbid();
+
         var verificacao = await _context.Verificacoes
             .Include(v => v.Cadastro)
             .FirstOrDefaultAsync(v => v.Id == verificacaoId);
 
         if (verificacao == null)
-            return NotFound("Solicitação de verificação não encontrada");
+            return NotFound("Solicitação de verificação não encontrada.");
 
         if (verificacao.Situacao != SituacaoVerificacao.Aguardando)
-            return BadRequest("Esta solicitação já foi avaliada");
-
-        var admin = await _context.Cadastros.FindAsync(dto.AdminId);
-        if (admin == null)
-            return BadRequest("Admin não encontrado");
-
-        if (admin.TipoUsuario != TipoUsuario.Admin)
-            return Unauthorized("Apenas admins podem avaliar verificações");
+            return BadRequest("Esta solicitação já foi avaliada.");
 
         verificacao.Situacao = dto.Situacao;
-        verificacao.UpdatedById = dto.AdminId;
+        verificacao.UpdatedById = tokenUserId.Value;
         verificacao.DataAvaliacao = DateTime.UtcNow;
 
         if (dto.Situacao == SituacaoVerificacao.Aprovado)
@@ -156,13 +196,16 @@ public class VerificacaoController : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        var adminCadastro = await _context.Cadastros
+            .FirstOrDefaultAsync(c => c.UsuarioId == tokenUserId.Value);
+
         return Ok(new
         {
             verificacao.Id,
             verificacao.UsuarioId,
             verificacao.Situacao,
             verificacao.DataAvaliacao,
-            UpdatedBy = new { admin.Id, admin.Nome }
+            UpdatedBy = new { Id = tokenUserId.Value, adminCadastro!.Nome }
         });
     }
 }
