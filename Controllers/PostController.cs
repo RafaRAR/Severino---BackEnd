@@ -85,7 +85,7 @@ public class PostController : ControllerBase
             Conteudo = dto.Conteudo,
             Role = dto.Role,
             DataCriacao = DateTime.UtcNow,
-            DataExpiracao = DateTime.UtcNow.AddDays(30), // 30 dias a partir da criação
+            DataExpiracao = DateTime.UtcNow.AddDays(20), // 20 dias a partir da criação
             Status = StatusPost.Aberto,
             Impulsionar = dto.Impulsionar,
             Endereco = string.IsNullOrEmpty(dto.Endereco) ? usuario.Cadastro?.Endereco : dto.Endereco,
