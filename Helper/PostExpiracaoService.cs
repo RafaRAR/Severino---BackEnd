@@ -1,6 +1,8 @@
 using APIseverino.Data;
+using APIseverino.Models;
 using APIseverino.Models.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 
 /// <summary>
 /// Serviço em background que roda a cada hora e marca como Expirado
@@ -43,11 +45,12 @@ public class PostExpiracaoService : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
         var agora = DateTime.UtcNow;
 
         var postsExpirados = await context.Posts
-            .Where(p => p.Status == StatusPost.Aberto && p.DataExpiracao < agora)
+            .Where(p => p.Status == StatusPost.Aberto
+            && p.DataExpiracao < agora
+            && p.Role == "Cliente")
             .ToListAsync();
 
         if (postsExpirados.Count == 0)
