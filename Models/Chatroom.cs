@@ -5,25 +5,15 @@ namespace APIseverino.Models
     public class ChatRoom
     {
         public int Id { get; set; }
-
         public int PostId { get; set; }
-
-        [JsonIgnore]
-        public Post Post { get; set; } = null!;
-
+        [JsonIgnore] public Post Post { get; set; } = null!;
         public int ClienteId { get; set; }
-
-        [JsonIgnore]
-        public Usuario Cliente { get; set; } = null!;
-
+        [JsonIgnore] public Usuario Cliente { get; set; } = null!;
         public int PrestadorId { get; set; }
-
-        [JsonIgnore]
-        public Usuario Prestador { get; set; } = null!;
-
+        [JsonIgnore] public Usuario Prestador { get; set; } = null!;
+        public bool ClienteConfirmou { get; set; }
+        public bool PrestadorConfirmou { get; set; }
         public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
-
-        [JsonIgnore]
-        public ICollection<ChatMessage> Mensagens { get; set; } = new List<ChatMessage>();
+        [JsonIgnore] public ICollection<ChatMessage> Mensagens { get; set; } = new List<ChatMessage>();
     }
 }
