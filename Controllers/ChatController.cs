@@ -20,9 +20,9 @@ namespace APIseverino.Controllers
             _context = context;
             _hubContext = hubContext;
         }
-
         public record AbrirChatBody(int PostId, int ClienteId, int PrestadorId);
         public record AceitarPropostaBody(int PrestadorId);
+        public record ConfirmarAcaoBody(int RoomId, int UsuarioId);
 
         // ─────────────────────────────────────────────────────────────────────────────
         // POST: api/chat/abrir
@@ -279,6 +279,76 @@ namespace APIseverino.Controllers
                 post.Id,
                 Status = post.Status.ToString(),
                 post.DataExpiracao
+            });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────────
+        // PUT: api/chat/room/confirmar
+        // Registra a confirmação do usuário (cliente ou prestador).
+        // Quando os dois confirmarem, transiciona o status do post automaticamente.
+        // ─────────────────────────────────────────────────────────────────────────────
+        [HttpPut("room/confirmar")]
+        public async Task<IActionResult> ConfirmarAcao([FromBody] ConfirmarAcaoBody cab)
+        {
+            var room = await _context.ChatRooms
+                .Include(r => r.Post)
+                .FirstOrDefaultAsync(r => r.Id == cab.RoomId);
+
+            if (room == null)
+                return NotFound("Sala não encontrada.");
+
+            if (cab.UsuarioId == room.ClienteId)
+                room.ClienteConfirmou = true;
+            else if (cab.UsuarioId == room.PrestadorId)
+                room.PrestadorConfirmou = true;
+            else
+                return Forbid();
+
+            bool ambosConfirmaram = room.ClienteConfirmou && room.PrestadorConfirmou;
+
+            if (ambosConfirmaram)
+            {
+                if (room.Post.Status == StatusPost.Aberto)
+                {
+                    room.Post.Status = StatusPost.EmAndamento;
+                    room.Post.PrestadorEmNegociacaoId = room.PrestadorId;
+                }
+                else if (room.Post.Status == StatusPost.EmAndamento)
+                {
+                    room.Post.Status = StatusPost.Concluido;
+                    room.Post.PrestadorEmNegociacaoId = null;
+                }
+
+                // Reseta para permitir nova rodada de confirmação futura
+                room.ClienteConfirmou = false;
+                room.PrestadorConfirmou = false;
+
+                await _context.SaveChangesAsync();
+
+                await _hubContext.Clients.Group(cab.RoomId.ToString())
+                    .SendAsync("StatusNegociacaoAtualizado", new
+                    {
+                        ambosConfirmaram,
+                        postStatus = room.Post.Status.ToString()
+                    });
+
+                return Ok(new
+                {
+                    Mensagem = "Ambos confirmaram. Status atualizado.",
+                    AmbosConfirmaram = true,
+                    PostStatus = room.Post.Status.ToString()
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Mensagem = "Confirmação registrada. Aguardando o outro participante.",
+                AmbosConfirmaram = false,
+                room.ClienteConfirmou,
+                room.PrestadorConfirmou,
+                PostStatus = room.Post.Status.ToString()
             });
         }
     }

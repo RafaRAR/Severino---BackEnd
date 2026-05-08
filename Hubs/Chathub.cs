@@ -77,29 +77,5 @@ namespace APIseverino.Hubs
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
         }
-
-        public async Task ConfirmarAcao(int roomId, int usuarioId)
-        {
-            var room = await _context.ChatRooms.Include(r => r.Post).FirstOrDefaultAsync(r => r.Id == roomId);
-            if (room == null) return;
-
-            if (usuarioId == room.ClienteId) room.ClienteConfirmou = true;
-            else if (usuarioId == room.PrestadorId) room.PrestadorConfirmou = true;
-            else return;
-
-            if (room.ClienteConfirmou && room.PrestadorConfirmou)
-            {
-                if (room.Post.Status == StatusPost.Aberto) room.Post.Status = StatusPost.EmAndamento;
-                else if (room.Post.Status == StatusPost.EmAndamento) room.Post.Status = StatusPost.Concluido;
-            }
-
-            await _context.SaveChangesAsync();
-            await Clients.Group(roomId.ToString()).SendAsync("StatusNegociacaoAtualizado", new
-            {
-                room.ClienteConfirmou,
-                room.PrestadorConfirmou,
-                postStatus = room.Post.Status.ToString()
-            });
-        }
     }
 }
