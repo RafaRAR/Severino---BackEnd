@@ -290,21 +290,22 @@ namespace APIseverino.Controllers
         [HttpPut("room/confirmar")]
         public async Task<IActionResult> ConfirmarAcao([FromBody] ConfirmarAcaoBody cab)
         {
-            var room = await _context.ChatRooms
-                .Include(r => r.Post)
-                .FirstOrDefaultAsync(r => r.Id == cab.RoomId);
+            var room = await _context.ChatRooms.Include(r => r.Post).FirstOrDefaultAsync(r => r.Id == cab.RoomId);
+            if (room == null) return NotFound();
 
-            if (room == null)
-                return NotFound("Sala não encontrada.");
+            bool isCliente = cab.UsuarioId == room.ClienteId;
+            if (isCliente) room.ClienteConfirmou = true;
+            else if (cab.UsuarioId == room.PrestadorId) room.PrestadorConfirmou = true;
+            else return Forbid();
 
-            if (cab.UsuarioId == room.ClienteId)
-                room.ClienteConfirmou = true;
-            else if (cab.UsuarioId == room.PrestadorId)
-                room.PrestadorConfirmou = true;
-            else
-                return Forbid();
+            string ator = isCliente ? "Cliente" : "Profissional";
+            string acao = room.Post.Status == StatusPost.Aberto ? "aceitou" : "concluiu";
+
+            var msg1 = new ChatMessage { ChatRoomId = room.Id, SenderId = cab.UsuarioId, SenderNome = "Sistema", Conteudo = $"✅ O {ator} {acao}", DataEnvio = DateTime.UtcNow };
+            _context.ChatMessages.Add(msg1);
 
             bool ambosConfirmaram = room.ClienteConfirmou && room.PrestadorConfirmou;
+            ChatMessage msg2 = null;
 
             if (ambosConfirmaram)
             {
@@ -312,44 +313,31 @@ namespace APIseverino.Controllers
                 {
                     room.Post.Status = StatusPost.EmAndamento;
                     room.Post.PrestadorEmNegociacaoId = room.PrestadorId;
+                    msg2 = new ChatMessage { ChatRoomId = room.Id, SenderId = cab.UsuarioId, SenderNome = "Sistema", Conteudo = "🚀 Serviço em Andamento", DataEnvio = DateTime.UtcNow };
                 }
                 else if (room.Post.Status == StatusPost.EmAndamento)
                 {
                     room.Post.Status = StatusPost.Concluido;
                     room.Post.PrestadorEmNegociacaoId = null;
+                    msg2 = new ChatMessage { ChatRoomId = room.Id, SenderId = cab.UsuarioId, SenderNome = "Sistema", Conteudo = "🏁 Serviço concluído!", DataEnvio = DateTime.UtcNow };
                 }
-
-                // Reseta para permitir nova rodada de confirmação futura
-                room.ClienteConfirmou = false;
-                room.PrestadorConfirmou = false;
-
-                await _context.SaveChangesAsync();
-
-                await _hubContext.Clients.Group(cab.RoomId.ToString())
-                    .SendAsync("StatusNegociacaoAtualizado", new
-                    {
-                        ambosConfirmaram,
-                        postStatus = room.Post.Status.ToString()
-                    });
-
-                return Ok(new
-                {
-                    Mensagem = "Ambos confirmaram. Status atualizado.",
-                    AmbosConfirmaram = true,
-                    PostStatus = room.Post.Status.ToString()
-                });
+                if (msg2 != null) _context.ChatMessages.Add(msg2);
             }
 
             await _context.SaveChangesAsync();
 
-            return Ok(new
+            var group = _hubContext.Clients.Group(cab.RoomId.ToString());
+            await group.SendAsync("StatusNegociacaoAtualizado", new { clienteConfirmou = room.ClienteConfirmou, prestadorConfirmou = room.PrestadorConfirmou, postStatus = room.Post.Status.ToString() });
+            await group.SendAsync("ReceiveMessage", msg1);
+            if (msg2 != null) await group.SendAsync("ReceiveMessage", msg2);
+
+            if (ambosConfirmaram)
             {
-                Mensagem = "Confirmação registrada. Aguardando o outro participante.",
-                AmbosConfirmaram = false,
-                room.ClienteConfirmou,
-                room.PrestadorConfirmou,
-                PostStatus = room.Post.Status.ToString()
-            });
+                room.ClienteConfirmou = false; room.PrestadorConfirmou = false;
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new { AmbosConfirmaram = ambosConfirmaram, room.ClienteConfirmou, room.PrestadorConfirmou, PostStatus = room.Post.Status.ToString() });
         }
     }
 }
