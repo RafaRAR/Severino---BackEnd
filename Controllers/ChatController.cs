@@ -130,7 +130,17 @@ namespace APIseverino.Controllers
                     NomeCliente = r.Cliente.Nome,
                     r.PrestadorId,
                     NomePrestador = r.Prestador.Nome,
+                    r.ClienteConfirmou,
+                    r.PrestadorConfirmou,
                     r.DataCriacao,
+                    LanceAtual = r.Post.Comentarios
+                .Where(c => c.UsuarioId == r.PrestadorId)
+                .Select(c => c.ValorDeLance)
+                .FirstOrDefault(),
+                    LanceId = r.Post.Comentarios
+                .Where(c => c.UsuarioId == r.PrestadorId)
+                .Select(c => c.Id)
+                .FirstOrDefault(),
                     UltimaMensagem = r.Mensagens
                         .OrderByDescending(m => m.DataEnvio)
                         .Select(m => new { m.Conteudo, m.DataEnvio, m.SenderNome })
