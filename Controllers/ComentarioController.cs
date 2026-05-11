@@ -25,8 +25,8 @@ public class ComentarioController : ControllerBase
     );
 
     public record UpdateComentarioBody(
-        string Conteudo,
-        decimal ValorDeLance
+        string? Conteudo,
+        decimal? ValorDeLance
     );
 
     // DTO para retornar informações do usuário com Id e Nome
@@ -135,7 +135,7 @@ public class ComentarioController : ControllerBase
         // Atualiza ValorDeLance somente se mudou
         if (dto.ValorDeLance != comentario.ValorDeLance && dto.ValorDeLance > 0)
         {
-            comentario.ValorDeLance = dto.ValorDeLance;
+            comentario.ValorDeLance = dto.ValorDeLance.Value;
             atualizado = true;
         }
 
