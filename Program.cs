@@ -15,6 +15,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<ImageKitService>();
+builder.Services.AddHttpClient<OpenAIService>();
 
 // ─── Carrega .env (tenta ambos os nomes) ─────────────────────────────────────
 var envPath1 = Path.Combine(Directory.GetCurrentDirectory(), ".env.test");

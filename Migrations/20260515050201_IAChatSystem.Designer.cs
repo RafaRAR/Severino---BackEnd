@@ -3,6 +3,7 @@ using System;
 using APIseverino.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace APIseverino.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260515050201_IAChatSystem")]
+    partial class IAChatSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -225,87 +228,6 @@ namespace APIseverino.Migrations
                     b.HasIndex("IdPrestadorResponsavel");
 
                     b.ToTable("Lances");
-                });
-
-            modelBuilder.Entity("APIseverino.Models.Pagamento", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ChatRoomId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ClienteId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("ClienteSolicitouCancelamento")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("DataCancelamento")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("DataCriacao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<DateTime?>("DataLiberacao")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DataPagamento")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("PrazoLimiteCancelamento")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("PrestadorId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("PrestadorSolicitouCancelamento")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("StripeContaPrestadorId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("StripePaymentIntentId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("StripeTransferId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<decimal>("TaxaPlataforma")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("Valor")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("ValorLiquido")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChatRoomId");
-
-                    b.HasIndex("ClienteId");
-
-                    b.HasIndex("PrestadorId");
-
-                    b.ToTable("Pagamentos");
                 });
 
             modelBuilder.Entity("APIseverino.Models.Post", b =>
@@ -682,33 +604,6 @@ namespace APIseverino.Migrations
                         .IsRequired();
 
                     b.Navigation("Post");
-
-                    b.Navigation("Prestador");
-                });
-
-            modelBuilder.Entity("APIseverino.Models.Pagamento", b =>
-                {
-                    b.HasOne("APIseverino.Models.ChatRoom", "ChatRoom")
-                        .WithMany()
-                        .HasForeignKey("ChatRoomId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("APIseverino.Models.Usuario", "Cliente")
-                        .WithMany()
-                        .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("APIseverino.Models.Usuario", "Prestador")
-                        .WithMany()
-                        .HasForeignKey("PrestadorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ChatRoom");
-
-                    b.Navigation("Cliente");
 
                     b.Navigation("Prestador");
                 });
