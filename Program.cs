@@ -8,11 +8,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Npgsql;
+using APIseverino.Services;
 using System.Reflection.Metadata;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<ImageKitService>();
+builder.Services.AddHttpClient<OpenAIService>();
 
 // ─── Carrega .env (tenta ambos os nomes) ─────────────────────────────────────
 var envPath1 = Path.Combine(Directory.GetCurrentDirectory(), ".env.test");

@@ -19,6 +19,8 @@ namespace APIseverino.Data
         public DbSet<Verificacao> Verificacoes { get; set; }
         public DbSet<ChatRoom> ChatRooms { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<IAConversation> IAConversations { get; set; }
+        public DbSet<IAMensagem> IAMensagens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -319,6 +321,37 @@ namespace APIseverino.Data
                       .WithMany()
                       .HasForeignKey(l => l.IdPrestadorResponsavel)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+            // ─── IAConversation ─────────────────────────────────────────────
+            modelBuilder.Entity<IAConversation>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+
+                entity.Property(c => c.Finalizada)
+                      .HasDefaultValue(false);
+
+                entity.Property(c => c.CriadoEm)
+                      .HasDefaultValueSql("NOW()");
+
+                entity.HasMany(c => c.Mensagens)
+                      .WithOne(m => m.Conversation)
+                      .HasForeignKey(m => m.IAConversationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ─── IAMensagem ────────────────────────────────────────────────
+            modelBuilder.Entity<IAMensagem>(entity =>
+            {
+                entity.HasKey(m => m.Id);
+
+                entity.Property(m => m.Role)
+                      .IsRequired();
+
+                entity.Property(m => m.Conteudo)
+                      .IsRequired();
+
+                entity.Property(m => m.DataEnvio)
+                      .HasDefaultValueSql("NOW()");
             });
         }
     }
