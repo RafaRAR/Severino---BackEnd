@@ -1,42 +1,46 @@
 using Imagekit.Sdk;
 
-public class ImageKitService
+
+namespace SeverinoAPI.Helpers
 {
-    private readonly ImagekitClient _client;
-
-    public ImageKitService(IConfiguration config)
+    public class ImageKitService
     {
-        var publicKey = config["ImageKit:PublicKey"];
-        var privateKey = config["ImageKit:PrivateKey"];
-        var urlEndpoint = config["ImageKit:UrlEndpoint"];
+        private readonly ImagekitClient _client;
 
-        _client = new ImagekitClient(publicKey, privateKey, urlEndpoint);
-    }
-
-    // 🔥 Upload agora retorna URL + FileId
-    public async Task<(string url, string fileId)> UploadImage(IFormFile file)
-    {
-        using var stream = file.OpenReadStream();
-        using var ms = new MemoryStream();
-
-        await stream.CopyToAsync(ms);
-
-        var base64 = Convert.ToBase64String(ms.ToArray());
-
-        var request = new FileCreateRequest
+        public ImageKitService(IConfiguration config)
         {
-            file = base64,
-            fileName = file.FileName
-        };
+            var publicKey = config["ImageKit:PublicKey"];
+            var privateKey = config["ImageKit:PrivateKey"];
+            var urlEndpoint = config["ImageKit:UrlEndpoint"];
 
-        var result = await _client.UploadAsync(request);
+            _client = new ImagekitClient(publicKey, privateKey, urlEndpoint);
+        }
 
-        return (result.url, result.fileId);
-    }
+        // 🔥 Upload agora retorna URL + FileId
+        public async Task<(string url, string fileId)> UploadImage(IFormFile file)
+        {
+            using var stream = file.OpenReadStream();
+            using var ms = new MemoryStream();
 
-    // 🔥 Método para deletar imagem
-    public async Task DeleteImage(string fileId)
-    {
-        await _client.DeleteFileAsync(fileId);
+            await stream.CopyToAsync(ms);
+
+            var base64 = Convert.ToBase64String(ms.ToArray());
+
+            var request = new FileCreateRequest
+            {
+                file = base64,
+                fileName = file.FileName
+            };
+
+            var result = await _client.UploadAsync(request);
+
+            return (result.url, result.fileId);
+        }
+
+        // 🔥 Método para deletar imagem
+        public async Task DeleteImage(string fileId)
+        {
+            await _client.DeleteFileAsync(fileId);
+        }
     }
 }

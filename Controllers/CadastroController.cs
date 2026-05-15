@@ -4,7 +4,8 @@ using APIseverino.Data;
 using APIseverino.Models;
 using System.Text.RegularExpressions; // Adicionar para usar Regex
 using APIseverino.Helpers;
-using APIseverino.Models.Enums; // Adicionar para usar CpfHelper
+using APIseverino.Models.Enums;
+using SeverinoAPI.Helpers; // Adicionar para usar CpfHelper
 
 namespace APIseverino.Controllers;
 

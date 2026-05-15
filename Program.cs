@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Npgsql;
+using SeverinoAPI.Helpers;
+using Stripe;
 using System.Reflection.Metadata;
 using System.Text;
 
@@ -17,9 +19,9 @@ builder.Services.AddScoped<ImageKitService>();
 // ─── Carrega .env (tenta ambos os nomes) ─────────────────────────────────────
 var envPath1 = Path.Combine(Directory.GetCurrentDirectory(), ".env.test");
 var envPath2 = Path.Combine(Directory.GetCurrentDirectory(), "env.test");
-if (File.Exists(envPath1))
+if (System.IO.File.Exists(envPath1))
     Env.Load(envPath1);
-else if (File.Exists(envPath2))
+else if (System.IO.File.Exists(envPath2))
     Env.Load(envPath2);
 
 // ─── Banco de Dados (DATABASE_URL ou appsettings) ─────────────────────────────
@@ -161,6 +163,8 @@ builder.Services.AddSignalR();
 builder.Services.AddHostedService<PostExpiracaoService>();
 
 // ─────────────────────────────────────────────────────────────────────────────
+builder.Services.AddScoped<StripeService>();
+
 var app = builder.Build();
 
 app.UseSwagger();

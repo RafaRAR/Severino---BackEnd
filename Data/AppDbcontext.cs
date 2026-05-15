@@ -19,6 +19,7 @@ namespace APIseverino.Data
         public DbSet<Verificacao> Verificacoes { get; set; }
         public DbSet<ChatRoom> ChatRooms { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<Pagamento> Pagamentos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -318,6 +319,70 @@ namespace APIseverino.Data
                 entity.HasOne(l => l.Prestador)
                       .WithMany()
                       .HasForeignKey(l => l.IdPrestadorResponsavel)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Pagamento>(entity =>
+            {
+                entity.HasKey(p => p.Id);
+
+                entity.Property(p => p.Valor)
+                      .HasColumnType("decimal(18,2)")
+                      .IsRequired();
+
+                entity.Property(p => p.TaxaPlataforma)
+                      .HasColumnType("decimal(18,2)")
+                      .IsRequired();
+
+                entity.Property(p => p.ValorLiquido)
+                      .HasColumnType("decimal(18,2)")
+                      .IsRequired();
+
+                entity.Property(p => p.Status)
+                      .IsRequired()
+                      .HasConversion<int>()
+                      .HasDefaultValue(StatusPagamento.Pendente);
+
+                entity.Property(p => p.StripePaymentIntentId)
+                      .HasMaxLength(100)
+                      .IsRequired(false);
+
+                entity.Property(p => p.StripeTransferId)
+                      .HasMaxLength(100)
+                      .IsRequired(false);
+
+                entity.Property(p => p.StripeContaPrestadorId)
+                      .HasMaxLength(100)
+                      .IsRequired(false);
+
+                entity.Property(p => p.DataCriacao)
+                      .HasDefaultValueSql("NOW()");
+
+                entity.Property(p => p.DataPagamento).IsRequired(false);
+                entity.Property(p => p.DataLiberacao).IsRequired(false);
+                entity.Property(p => p.DataCancelamento).IsRequired(false);
+
+                entity.Property(p => p.ClienteSolicitouCancelamento)
+                      .HasDefaultValue(false);
+
+                entity.Property(p => p.PrestadorSolicitouCancelamento)
+                      .HasDefaultValue(false);
+
+                // Um pagamento pertence a uma ChatRoom
+                entity.HasOne(p => p.ChatRoom)
+                      .WithMany()
+                      .HasForeignKey(p => p.ChatRoomId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Relações com usuários (Restrict para não perder histórico financeiro)
+                entity.HasOne(p => p.Cliente)
+                      .WithMany()
+                      .HasForeignKey(p => p.ClienteId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Prestador)
+                      .WithMany()
+                      .HasForeignKey(p => p.PrestadorId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
         }
