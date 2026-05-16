@@ -1,4 +1,6 @@
+using APIseverino.Data;
 using DotNetEnv;
+using Microsoft.EntityFrameworkCore;
 using Stripe;
 
 namespace APIseverino.Helpers
@@ -16,16 +18,71 @@ namespace APIseverino.Helpers
     /// </summary>
     public class StripeService
     {
-        public StripeService()
+        private readonly AppDbContext _context;
+
+        public StripeService(AppDbContext context)
         {
-            if (System.IO.File.Exists(".env.test"))
-                Env.Load(".env.test");
-            else
-                Env.Load(".env");
-            // Lê diretamente da variável de ambiente, igual ao padrão já usado no projeto
+            _context = context;
+
+            if (System.IO.File.Exists(".env.test")) Env.Load(".env.test");
+            else Env.Load(".env");
+
             StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY")
                 ?? throw new InvalidOperationException("Variável de ambiente STRIPE_SECRET_KEY não configurada.");
         }
+
+        public async Task<string> ObterOuCriarContaExpress(int usuarioId)
+        {
+            var usuario = await _context.Usuarios.FindAsync(usuarioId);
+
+            if (usuario == null)
+                throw new Exception("Utilizador não encontrado.");
+
+            // Se já tem conta, devolve o ID existente
+            if (!string.IsNullOrEmpty(usuario.StripeAccountId))
+            {
+                return usuario.StripeAccountId;
+            }
+
+            // Se não tem, cria a conta no Stripe
+            var options = new AccountCreateOptions
+            {
+                Type = "express",
+                Capabilities = new AccountCapabilitiesOptions
+                {
+                    Transfers = new AccountCapabilitiesTransfersOptions { Requested = true }
+                }
+            };
+
+            var service = new AccountService();
+            var account = await service.CreateAsync(options);
+
+            // Guarda na base de dados
+            usuario.StripeAccountId = account.Id;
+            await _context.SaveChangesAsync();
+
+            return account.Id;
+        }
+
+        /// <summary>
+        /// Gera o URL único para o prestador preencher os dados bancários no Stripe.
+        /// </summary>
+        public async Task<string> GerarLinkDeOnboarding(string accountId, string returnUrl, string refreshUrl)
+        {
+            var options = new AccountLinkCreateOptions
+            {
+                Account = accountId,
+                RefreshUrl = refreshUrl,
+                ReturnUrl = returnUrl,
+                Type = "account_onboarding",
+            };
+
+            var service = new AccountLinkService();
+            var accountLink = await service.CreateAsync(options);
+
+            return accountLink.Url;
+        }
+    
 
         // ─────────────────────────────────────────────────────────────────────────
         // Cria um PaymentIntent com capture_method = manual.

@@ -117,6 +117,7 @@ namespace APIseverino.Controllers
             var salas = await _context.ChatRooms
                 .Where(r => r.ClienteId == usuarioId || r.PrestadorId == usuarioId)
                 .Include(r => r.Post)
+                .ThenInclude(p => p.Comentarios) // Importante para carregar os lances
                 .Include(r => r.Cliente)
                 .Include(r => r.Prestador)
                 .OrderByDescending(r => r.DataCriacao)
@@ -133,14 +134,18 @@ namespace APIseverino.Controllers
                     r.ClienteConfirmou,
                     r.PrestadorConfirmou,
                     r.DataCriacao,
+
+                    // 👉 NOVA LINHA ADICIONADA:
+                    StripeContaPrestadorId = r.Prestador.StripeAccountId,
+
                     LanceAtual = r.Post.Comentarios
-                .Where(c => c.UsuarioId == r.PrestadorId)
-                .Select(c => c.ValorDeLance)
-                .FirstOrDefault(),
+                        .Where(c => c.UsuarioId == r.PrestadorId)
+                        .Select(c => c.ValorDeLance)
+                        .FirstOrDefault(),
                     LanceId = r.Post.Comentarios
-                .Where(c => c.UsuarioId == r.PrestadorId)
-                .Select(c => c.Id)
-                .FirstOrDefault(),
+                        .Where(c => c.UsuarioId == r.PrestadorId)
+                        .Select(c => c.Id)
+                        .FirstOrDefault(),
                     UltimaMensagem = r.Mensagens
                         .OrderByDescending(m => m.DataEnvio)
                         .Select(m => new { m.Conteudo, m.DataEnvio, m.SenderNome })

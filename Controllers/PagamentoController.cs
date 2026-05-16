@@ -180,8 +180,6 @@ namespace APIseverino.Controllers
             if (pagamento.Status != StatusPagamento.Retido)
                 return BadRequest("O pagamento precisa estar Retido para ser liberado.");
 
-            if (pagamento.ChatRoom.Post.Status != StatusPost.Concluido)
-                return BadRequest("O serviço precisa estar Concluído para liberar o pagamento.");
 
             if (string.IsNullOrEmpty(pagamento.StripePaymentIntentId))
                 return BadRequest("PaymentIntent do Stripe não encontrado neste pagamento.");
