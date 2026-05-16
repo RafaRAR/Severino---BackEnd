@@ -23,8 +23,8 @@ namespace APIseverino.Controllers
             {
                 // URLs para onde o Stripe vai redirecionar o prestador ao terminar (ou falhar)
                 // Num ambiente de produção real, puxe isto do appsettings.json
-                string returnUrl = "http://localhost:5173/carteira";
-                string refreshUrl = "http://localhost:5173/carteira";
+                string returnUrl = "http://localhost:5173/";
+                string refreshUrl = "http://localhost:5173/";
 
                 // 1. Cria ou recupera o acct_xxxxxx
                 string accountId = await _stripeService.ObterOuCriarContaExpress(usuarioId);

@@ -50,7 +50,8 @@ namespace APIseverino.Helpers
                 Type = "express",
                 Capabilities = new AccountCapabilitiesOptions
                 {
-                    Transfers = new AccountCapabilitiesTransfersOptions { Requested = true }
+                    Transfers = new AccountCapabilitiesTransfersOptions { Requested = true },
+                    CardPayments = new AccountCapabilitiesCardPaymentsOptions { Requested = true } // <-- ADICIONAR ESTA LINHA
                 }
             };
 
