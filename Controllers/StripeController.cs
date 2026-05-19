@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using APIseverino.Helpers; 
 using System.Threading.Tasks;
 using System;
+using System.Diagnostics;
 
 namespace APIseverino.Controllers
 {
@@ -23,8 +24,8 @@ namespace APIseverino.Controllers
             {
                 // URLs para onde o Stripe vai redirecionar o prestador ao terminar (ou falhar)
                 // Num ambiente de produção real, puxe isto do appsettings.json
-                string returnUrl = "http://localhost:5173/";
-                string refreshUrl = "http://localhost:5173/";
+                string returnUrl = Debugger.IsAttached ? "http://localhost:5173/" : "https://white-smoke-05cde4b0f.4.azurestaticapps.net/";
+                string refreshUrl = Debugger.IsAttached ? "http://localhost:5173/" : "https://white-smoke-05cde4b0f.4.azurestaticapps.net/";
 
                 // 1. Cria ou recupera o acct_xxxxxx
                 string accountId = await _stripeService.ObterOuCriarContaExpress(usuarioId);
