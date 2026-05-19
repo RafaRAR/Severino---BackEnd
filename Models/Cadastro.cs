@@ -25,4 +25,6 @@ public class Cadastro
 
     [JsonIgnore]
     public Verificacao? Verificacao { get; set; }
+
+    public string? StripeAccountId { get; set; }
 }

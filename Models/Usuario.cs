@@ -35,4 +35,5 @@ public class Usuario
     public Cadastro? Cadastro { get; set; }
 
     public List<Comentario>? Comentarios { get; set; }
+    public string? StripeAccountId { get; set; }
 }
