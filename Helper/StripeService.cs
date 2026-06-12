@@ -123,28 +123,13 @@ namespace APIseverino.Helpers
         // Captura o valor já autorizado e o repassa ao prestador via Transfer.
         // Chame isso ao concluir o serviço.
         // ─────────────────────────────────────────────────────────────────────────
-        public async Task<string> CapturarETransferir(
-            string paymentIntentId,
-            decimal valorLiquido,
-            string stripeContaPrestadorId)
+        public async Task<string> CapturarETransferir(string paymentIntentId)
         {
-            // 1. Captura o PaymentIntent (cobra o cliente)
             var intentService = new PaymentIntentService();
-            await intentService.CaptureAsync(paymentIntentId);
+            var intent = await intentService.CaptureAsync(paymentIntentId);
 
-            // 2. Cria a transferência para a conta Connect do prestador
-            var transferOptions = new TransferCreateOptions
-            {
-                Amount = (long)(valorLiquido * 100),
-                Currency = "brl",
-                Destination = stripeContaPrestadorId,
-                SourceTransaction = paymentIntentId
-            };
-
-            var transferService = new TransferService();
-            var transfer = await transferService.CreateAsync(transferOptions);
-
-            return transfer.Id;
+            // Stripe já transferiu o valor bruto pro prestador aqui
+            return intent.Id;
         }
 
         // ─────────────────────────────────────────────────────────────────────────
