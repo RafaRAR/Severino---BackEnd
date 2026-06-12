@@ -15,7 +15,7 @@ namespace APIseverino.Controllers
         private readonly StripeService _stripe;
 
         // Taxa da plataforma: 15% sobre o valor bruto
-        private const decimal TaxaPlataformaPercent = 0.15m;
+        private const decimal TaxaPlataformaPercent = 0.10m;
 
         // Dias corridos após a criação em que qualquer parte pode cancelar unilateralmente
         private const int DiasLimiteCancelamentoUnilateral = 30;
@@ -188,9 +188,7 @@ namespace APIseverino.Controllers
             try
             {
                 transferId = await _stripe.CapturarETransferir(
-                    paymentIntentId: pagamento.StripePaymentIntentId,
-                    valorLiquido: pagamento.ValorLiquido,
-                    stripeContaPrestadorId: pagamento.StripeContaPrestadorId!
+                    paymentIntentId: pagamento.StripePaymentIntentId
                 );
             }
             catch (Exception ex)
